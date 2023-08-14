@@ -11,3 +11,16 @@ export const MODULE_DIRECTORIES = [
     'StarterPlayerScripts',
     'StarterCharacterScripts',
 ] as const;
+
+export const DEFAULT_STATE: SettingsState = {
+    services: [
+        "Players",
+        "Lighting"
+    ],
+    ancestors: [
+        "Cmdr"
+    ],
+    modules: [
+        "Test"
+    ]
+}
