@@ -50,5 +50,29 @@ export const DEFAULT_STATE: SettingsState = {
     },
     include: {
         services: [...DEFAULT_SERVICES]
+    },
+    importLines: {
+        services: {
+            newLine: "Below",
+            start: {
+                line: 1,
+                character: 1
+            },
+            finish: {
+                line: 0,
+                character: 0
+            }
+        },
+        modules: {
+            newLine: "Above",
+            start: {
+                line: 2,
+                character: 1
+            },
+            finish: {
+                line: 0,
+                character: 0
+            }
+        },
     }
 }

@@ -1,3 +1,5 @@
+import { EDITOR_NAME } from 'constants';
+import { GetState } from 'state';
 import { GetModulePath, GetImportsFromTypedText, GetServiceOfModule, GetWordFromTypedText, IsAlreadyImported, moduleScripts, services, CreateImportStatement } from 'utils';
 
 const ScriptEditorService = game.GetService( 'ScriptEditorService' );
@@ -8,8 +10,14 @@ function ImportService ( document: ScriptDocument, service: Instance ) {
 
 	const importStatement = CreateImportStatement( service )
 	const isServiceRequired = IsAlreadyImported( scriptContents, importStatement );
+	const lineConfig = GetState().importLines.services
 	if ( !isServiceRequired ) {
-		document.EditTextAsync( `${importStatement}\n`, 1, 1, 0, 0 );
+		const text = lineConfig.newLine === "Above" ? `\n${importStatement}` : `${importStatement}\n`
+		const [success, result] = pcall( () => document.EditTextAsync( text, lineConfig.start.line, lineConfig.start.character, lineConfig.finish.line, lineConfig.finish.character ) )
+		if ( !success ) {
+			warn( `${EDITOR_NAME}: ${result}` )
+			print( `${EDITOR_NAME}: Did you mess up the import lines for Services?` )
+		}
 	}
 }
 
@@ -22,8 +30,14 @@ function ImportModuleScript ( document: ScriptDocument, moduleScript: ModuleScri
 	const scriptContents = document.GetText();
 	const importStatement = CreateImportStatement( moduleScript )
 	const isModuleRequired = IsAlreadyImported( scriptContents, importStatement );
+	const lineConfig = GetState().importLines.modules
 	if ( !isModuleRequired ) {
-		document.EditTextAsync( `\n${importStatement}`, 2, 1, 0, 0 );
+		const text = lineConfig.newLine === "Above" ? `\n${importStatement}` : `${importStatement}\n`
+		const [success, result] = pcall( () => document.EditTextAsync( text, lineConfig.start.line, lineConfig.start.character, lineConfig.finish.line, lineConfig.finish.character ) )
+		if ( !success ) {
+			warn( `${EDITOR_NAME}: ${result}` )
+			print( `${EDITOR_NAME}: Did you mess up the import lines for Modules?` )
+		}
 	}
 }
 

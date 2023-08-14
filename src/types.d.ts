@@ -1,3 +1,5 @@
+
+
 type Request = {
 	position: {
 		line: number;
@@ -7,6 +9,11 @@ type Request = {
 		document: ScriptDocument | undefined;
 		script: LuaSourceContainer | undefined;
 	};
+};
+
+type ReplaceLine = {
+	start: { line: number; character: number };
+	end: { line: number; character: number };
 };
 
 type Response = {
@@ -24,10 +31,7 @@ type Response = {
 		preselect?: boolean;
 		textEdit?: {
 			newText: string;
-			replace: {
-				start: { line: number; character: number };
-				end: { line: number; character: number };
-			};
+			replace: ReplaceLine
 		};
 	}>;
 };
@@ -38,10 +42,7 @@ type ResponseItem = {
 	learnMoreLink?: string;
 	textEdit: {
 		newText: string;
-		replace: {
-			start: { line: number; character: number };
-			end: { line: number; character: number };
-		};
+		replace: ReplaceLine
 	};
 };
 
@@ -60,6 +61,11 @@ interface Imports {
 
 type SettingsModule = ModuleScript & SettingsState
 
+type ImportLine = {
+	newLine: "Above" | "Below";
+	start: { line: number; character: number };
+	finish: { line: number; character: number };
+}
 interface SettingsState {
 	exclude: {
 		ancestors: Array<string>;
@@ -68,4 +74,8 @@ interface SettingsState {
 	include: {
 		services: Array<string>;
 	}
+	importLines: {
+		services: ImportLine,
+		modules: ImportLine,
+	},
 }

@@ -34,8 +34,33 @@ function SetStateModuleSource () {
     include = {
         services = { -- This will include services matching these names
             ${State.include.services.map( services => `"${services}"` ).join( ",\n\t\t\t" )},
-        }
-    }
+        },
+    },
+
+    importLines = {
+        services = { -- Reposition what line Services will be imported on.
+            newLine = "${State.importLines.services.newLine}", -- Reposition the \n to create a line below or above.
+            start = {
+                line = ${State.importLines.services.start.line},
+                character = ${State.importLines.services.start.character},
+            },
+            finish = {
+                line = ${State.importLines.services.finish.line},
+                character = ${State.importLines.services.finish.character},
+            }
+        },
+        modules = { -- Reposition what line Modules will be imported on.
+            newLine = "${State.importLines.modules.newLine}", -- Reposition the \n to create a line below or above.
+            start = {
+                line = ${State.importLines.modules.start.line},
+                character = ${State.importLines.modules.start.character},
+            },
+            finish = {
+                line = ${State.importLines.modules.finish.line},
+                character = ${State.importLines.modules.finish.character},
+            }
+        },
+    },
 }
 
 -- Data will be saved upon closing this Module.`
@@ -49,6 +74,10 @@ function LoadData () {
         },
         include: {
             services: globals.plugin.GetSetting( "include_services" ) as Array<string> ?? DEFAULT_STATE.include.services,
+        },
+        importLines: {
+            services: globals.plugin.GetSetting( "importLines_services" ) as ImportLine ?? DEFAULT_STATE.importLines.services,
+            modules: globals.plugin.GetSetting( "importLines_modules" ) as ImportLine ?? DEFAULT_STATE.importLines.modules,
         }
     }
 
@@ -83,6 +112,11 @@ export function SaveData () {
             globals.plugin.SetSetting( `include_${key}`, value )
             State.include[key] = value
         }
+    }
+
+    for ( const [key, value] of pairs( stateModule.importLines ) ) {
+        globals.plugin.SetSetting( `importLines_${key}`, value )
+        State.importLines[key] = value
     }
 
     print( `${EDITOR_NAME}: Settings have been saved` )

@@ -116,7 +116,7 @@ export function SetServiceImports () {
         let serviceInstance: Instance
         const [success, response] = pcall( () => serviceInstance = game.GetService( service as never ) as Instance )
         if ( !success ) {
-            warn( `${EDITOR_NAME}: Failed to get service "${service}".` );
+            warn( `${EDITOR_NAME}: ${response}` )
             print( `${EDITOR_NAME}: Did you spell the name correctly?` );
         }
 
