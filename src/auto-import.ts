@@ -1,5 +1,3 @@
-import { t } from '@rbxts/t';
-import { EDITOR_NAME, MODULE_DIRECTORIES } from 'constants';
 import { GenerateModulePath, GetImportsFromTypedText, GetServiceOfModule, GetWordFromTypedText, IsAlreadyImported, moduleScripts, services } from 'utils';
 
 const ScriptEditorService = game.GetService( 'ScriptEditorService' );
@@ -33,17 +31,12 @@ function ImportModuleScript ( document: ScriptDocument, moduleScript: ModuleScri
 function Import ( lineText: string, document: ScriptDocument ) {
 	for ( const module of moduleScripts ) {
 		if ( module.Name === lineText ) {
-			print( "Module imported" )
 			return ImportModuleScript( document, module )
 		}
 	}
 
-	print( "Trying to import service" )
-	print( lineText )
 	for ( const service of services ) {
-		print( service.Name )
 		if ( service.Name === lineText ) {
-			print( "IMPORT SERVICE" )
 			return ImportService( document, service )
 		}
 	}

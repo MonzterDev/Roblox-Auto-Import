@@ -1,3 +1,5 @@
+import { MODULE_DIRECTORIES } from "constants";
+
 export const services = game.GetChildren()
 export const moduleScripts = new Array<ModuleScript>();
 
@@ -77,25 +79,30 @@ export function GenerateModulePath ( module: ModuleScript ): string {
 export function RegisterScriptAddedEvents () {
     const connections = new Array<RBXScriptConnection>();
 
-    const descendantAdded = game.DescendantAdded.Connect( ( descendant ) => {
-        if ( descendant.IsA( 'ModuleScript' ) ) {
-            moduleScripts.push( descendant as ModuleScript );
-        }
-    } );
-    const descendantRemoving = game.DescendantRemoving.Connect( ( descendant ) => {
-        if ( descendant.IsA( 'ModuleScript' ) ) {
-            const index = moduleScripts.findIndex( ( moduleScript ) => moduleScript === descendant );
-            if ( index !== -1 ) moduleScripts.remove( index );
-        }
-    } );
+    MODULE_DIRECTORIES.forEach( ( directory ) => {
+        const service = game.GetService( directory as never ) as Instance;
+        if ( service === undefined ) return;
 
-    connections.push( descendantAdded, descendantRemoving );
+        const addedEvent = service.DescendantAdded.Connect( ( descendant ) => {
+            if ( descendant.IsA( 'ModuleScript' ) ) {
+                moduleScripts.push( descendant as ModuleScript );
+            }
+        } );
 
-    game.GetDescendants().forEach( ( descendant ) => {
-        if ( descendant.IsA( 'ModuleScript' ) ) {
-            moduleScripts.push( descendant as ModuleScript );
-        }
-    } );
+        const removingEvent = service.DescendantRemoving.Connect( ( descendant ) => {
+            if ( descendant.IsA( 'ModuleScript' ) ) {
+                moduleScripts.push( descendant as ModuleScript );
+            }
+        } );
+
+        connections.push( addedEvent, removingEvent );
+
+        service.GetDescendants().forEach( ( descendant ) => {
+            if ( descendant.IsA( 'ModuleScript' ) ) {
+                moduleScripts.push( descendant as ModuleScript );
+            }
+        } )
+    } )
 
     return connections;
 }
