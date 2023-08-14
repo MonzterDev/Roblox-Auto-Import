@@ -2,8 +2,9 @@ export const services = game.GetChildren()
 export const moduleScripts = new Array<ModuleScript>();
 
 export function IsAlreadyImported ( scriptContent: string, importString: string ) {
+    const importStatement = `local ${importString}`
     const scriptLines = scriptContent.split( '\n' );
-    const importLine = scriptLines.find( ( line ) => string.find( line, importString )[0] !== undefined );
+    const importLine = scriptLines.find( ( line ) => string.find( line, importStatement )[0] !== undefined );
     return importLine !== undefined;
 }
 
