@@ -17,30 +17,22 @@ type ReplaceLine = {
 };
 
 type Response = {
-	items: Array<{
-		label: string;
-		kind?: Enum.CompletionItemKind;
-		tags?: Array<Enum.CompletionItemTag>;
-		detail?: string;
-		documentation?: {
-			value: string;
-		};
-		overloads?: number;
-		learnMoreLink?: string;
-		codeSample?: string;
-		preselect?: boolean;
-		textEdit?: {
-			newText: string;
-			replace: ReplaceLine
-		};
-	}>;
+	items: Array<ResponseItem>;
 };
 
 type ResponseItem = {
 	label: string;
+	kind?: Enum.CompletionItemKind;
+	tags?: Array<Enum.CompletionItemTag>;
 	detail?: string;
+	documentation?: {
+		value: string;
+	};
+	overloads?: number;
 	learnMoreLink?: string;
-	textEdit: {
+	codeSample?: string;
+	preselect?: boolean;
+	textEdit?: {
 		newText: string;
 		replace: ReplaceLine
 	};

@@ -5,6 +5,18 @@ import { GetResponseItemsFromTypedText, GetServiceOfModule, GetWordFromTypedText
 const ScriptEditorService = game.GetService( 'ScriptEditorService' );
 const StudioService = game.GetService( 'StudioService' );
 
+function GetLastServiceLine ( document: ScriptDocument ) {
+	const lines = document.GetText().split( "\n" );
+	for ( const [index, line] of pairs( lines ) ) {
+		const cleanedLine = string.gsub( line, '\n', '' )[0];
+		if ( !cleanedLine.find( "game:GetService" )[0] )
+			return index
+	}
+	return 1
+}
+
+
+
 function ImportService ( document: ScriptDocument, service: Instance ) {
 	const scriptContents = document.GetText();
 
@@ -13,7 +25,8 @@ function ImportService ( document: ScriptDocument, service: Instance ) {
 	const lineConfig = GetState().importLines.services
 	if ( !isServiceRequired ) {
 		const text = lineConfig.newLine === "Above" ? `\n${importStatement}` : `${importStatement}\n`
-		const [success, result] = pcall( () => document.EditTextAsync( text, lineConfig.start.line, lineConfig.start.character, lineConfig.finish.line, lineConfig.finish.character ) )
+		const lastServiceLine = GetLastServiceLine( document )
+		const [success, result] = pcall( () => document.EditTextAsync( text, lastServiceLine, lineConfig.start.character, lineConfig.finish.line, lineConfig.finish.character ) )
 		if ( !success ) {
 			warn( `${EDITOR_NAME}: ${result}` )
 			print( `${EDITOR_NAME}: Did you mess up the import lines for Services?` )
@@ -33,7 +46,8 @@ function ImportModuleScript ( document: ScriptDocument, moduleScript: ModuleScri
 	const lineConfig = GetState().importLines.modules
 	if ( !isModuleRequired ) {
 		const text = lineConfig.newLine === "Above" ? `\n${importStatement}` : `${importStatement}\n`
-		const [success, result] = pcall( () => document.EditTextAsync( text, lineConfig.start.line, lineConfig.start.character, lineConfig.finish.line, lineConfig.finish.character ) )
+		const lastServiceLine = GetLastServiceLine( document )
+		const [success, result] = pcall( () => document.EditTextAsync( text, lastServiceLine + 1, lineConfig.start.character, lineConfig.finish.line, lineConfig.finish.character ) )
 		if ( !success ) {
 			warn( `${EDITOR_NAME}: ${result}` )
 			print( `${EDITOR_NAME}: Did you mess up the import lines for Modules?` )
