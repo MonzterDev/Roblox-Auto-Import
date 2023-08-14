@@ -1,6 +1,6 @@
 /// <reference types="@rbxts/types/plugin" />
 
-import { DocumentChangeEvent } from "auto-complete";
+import { DocumentChangeEvent, RegisterScriptAddedEvents } from "auto-complete";
 import { EDITOR_NAME } from "constants";
 
 const ScriptEditorService = game.GetService( "ScriptEditorService" );
@@ -12,12 +12,13 @@ const ScriptEditorService = game.GetService( "ScriptEditorService" );
 // 	print("Button clicked!");
 // } );
 
+const scriptAddedEvents = RegisterScriptAddedEvents()
 
-plugin.Deactivation.Once( () => {
+function cleanup () {
 	ScriptEditorService.DeregisterAutocompleteCallback( EDITOR_NAME );
 	DocumentChangeEvent.Disconnect()
-} )
-plugin.Unloading.Once( () => {
-	ScriptEditorService.DeregisterAutocompleteCallback( EDITOR_NAME );
-	DocumentChangeEvent.Disconnect()
-} )
+	scriptAddedEvents.forEach( event => event.Disconnect() )
+}
+
+plugin.Deactivation.Once( () => cleanup() )
+plugin.Unloading.Once( () => cleanup() )

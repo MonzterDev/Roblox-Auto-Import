@@ -1,37 +1,14 @@
-import { EDITOR_NAME } from 'constants';
+import { t } from '@rbxts/t';
+import { EDITOR_NAME, MODULE_DIRECTORIES } from 'constants';
 
 const ScriptEditorService = game.GetService( 'ScriptEditorService' );
 const StudioService = game.GetService( 'StudioService' );
 
-const DIRECTORIES = [
-	'Workspace',
-	'ReplicatedFirst',
-	'ReplicatedStorage',
-	'ServerScriptService',
-	'ServerStorage',
-	'StarterGui',
-	'StarterPack',
-	'StarterPlayerScripts',
-	'StarterCharacterScripts',
-] as const;
-
-const services = DIRECTORIES.map( ( directory ) => game.GetService( directory as never ) ) as Array<Instance>;
+const services = game.GetChildren()
+print( `Services:` )
+print( services )
 
 const moduleScripts = new Array<ModuleScript>();
-
-services.forEach( ( service ) => {
-	service.GetDescendants().forEach( ( child ) => {
-		if ( child.IsA( 'ModuleScript' ) ) {
-			moduleScripts.push( child as ModuleScript );
-		}
-	} );
-
-	service.DescendantAdded.Connect( ( child ) => {
-		if ( child.IsA( 'ModuleScript' ) ) {
-			moduleScripts.push( child as ModuleScript );
-		}
-	} );
-} );
 
 function GetWordFromTypedText ( text: string, cursorChar: number ) {
 	let startCharacter = cursorChar;
@@ -39,12 +16,10 @@ function GetWordFromTypedText ( text: string, cursorChar: number ) {
 
 	while ( i >= 0 ) {
 		const char = text.sub( i, i );
-		if ( string.match( char, '%a' )[0] ) {
+		if ( string.match( char, '%a' )[0] )
 			startCharacter = i;
-		} else {
-			print( 'end char:', char );
+		else
 			break;
-		}
 		i--;
 	}
 
@@ -151,6 +126,32 @@ export function AutocompleteCallback ( request: Request, response: Response ) {
 	} );
 
 	return response;
+}
+
+export function RegisterScriptAddedEvents () {
+	game.GetDescendants().forEach( ( descendant ) => {
+		if ( descendant.IsA( 'ModuleScript' ) ) {
+			moduleScripts.push( descendant as ModuleScript );
+		}
+	} );
+
+	const connections = new Array<RBXScriptConnection>();
+
+	const descendantAdded = game.DescendantAdded.Connect( ( descendant ) => {
+		if ( descendant.IsA( 'ModuleScript' ) ) {
+			moduleScripts.push( descendant as ModuleScript );
+		}
+	} );
+	const descendantRemoving = game.DescendantRemoving.Connect( ( descendant ) => {
+		if ( descendant.IsA( 'ModuleScript' ) ) {
+			const index = moduleScripts.findIndex( ( moduleScript ) => moduleScript === descendant );
+			if ( index !== -1 ) moduleScripts.remove( index );
+		}
+	} );
+
+	connections.push( descendantAdded, descendantRemoving );
+
+	return connections;
 }
 
 export const DocumentChangeEvent = ScriptEditorService.TextDocumentDidChange.Connect( ( document, changes ) => {
