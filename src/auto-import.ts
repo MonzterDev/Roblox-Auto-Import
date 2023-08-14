@@ -1,6 +1,6 @@
 import { EDITOR_NAME } from 'constants';
 import { GetState } from 'state';
-import { GetModulePath, GetImportsFromTypedText, GetServiceOfModule, GetWordFromTypedText, IsAlreadyImported, moduleScripts, services, CreateImportStatement } from 'utils';
+import { GetResponseItemsFromTypedText, GetServiceOfModule, GetWordFromTypedText, IsAlreadyImported, moduleScripts, services, CreateImportStatement, responseItems, CreateResponseItem } from 'utils';
 
 const ScriptEditorService = game.GetService( 'ScriptEditorService' );
 const StudioService = game.GetService( 'StudioService' );
@@ -55,7 +55,6 @@ function Import ( lineText: string, document: ScriptDocument ) {
 	}
 }
 
-
 export function AutocompleteCallback ( request: Request, response: Response ) {
 	const document = request.textDocument.document;
 	if ( !document ) return response
@@ -67,7 +66,7 @@ export function AutocompleteCallback ( request: Request, response: Response ) {
 	if ( currentWord.size() === 0 ) return response
 
 	const currentScriptContents = document.GetText();
-	const imports = GetImportsFromTypedText( currentWord, currentScriptContents );
+	const imports = GetResponseItemsFromTypedText( currentWord, currentScriptContents );
 
 	const replace = {
 		start: {
@@ -80,29 +79,17 @@ export function AutocompleteCallback ( request: Request, response: Response ) {
 		},
 	};
 
-	imports.services.forEach( ( service ) => {
-		const field: ResponseItem = {
-			label: service.Name,
-			detail: `Require: ${service.Name}`,
-			textEdit: {
-				newText: service.Name,
-				replace: replace,
-			},
-		};
-		response.items.push( field );
-	} )
+	for ( const [path, item] of pairs( imports ) ) {
+		const responseItem = responseItems[path];
+		if ( !responseItem ) return;
 
-	imports.modules.forEach( ( module ) => {
-		const field: ResponseItem = {
-			label: module.Name,
-			detail: `Require: ${module.Name}`,
-			textEdit: {
-				newText: module.Name,
-				replace: replace,
-			},
-		};
-		response.items.push( field );
-	} )
+		responseItem.textEdit = {
+			newText: item.label,
+			replace: replace,
+		}
+
+		response.items.push( responseItem );
+	}
 
 	return response;
 }
@@ -112,5 +99,11 @@ export const DocumentChangeEvent = ScriptEditorService.TextDocumentDidChange.Con
 	if ( !isActiveScript ) return;
 
 	const changesArray = changes as ChangesArray;
-	for ( const change of changesArray ) Import( change.text, document )
+	for ( const change of changesArray ) {
+		Import( change.text, document )
+
+		const inRangeOfModuleProps = change.range.start.line >= 0 && change.range.end.line <= 10
+		if ( inRangeOfModuleProps )
+			CreateResponseItem( document.GetScript() )
+	}
 } );

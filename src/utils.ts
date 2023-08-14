@@ -1,8 +1,87 @@
+import { t } from "@rbxts/t";
 import { EDITOR_NAME, MODULE_DIRECTORIES } from "constants";
 import { GetState } from "state";
 
 export const services = new Array<Instance>();
 export const moduleScripts = new Array<ModuleScript>();
+export const responseItems: Record<string, ResponseItem> = {}
+
+const RESPONSE_PROPERTIES = ["kind", "tags", "detail", "overloads", "learnMoreLink", "codeSample", "preselect", "textEdit.newText", "documentation"] as const;
+
+function UpdateResponseProperty ( response: ResponseItem, prop: string, value: string ) {
+    switch ( prop ) {
+        case 'detail':
+        case 'learnMoreLink':
+        case 'codeSample':
+            response[prop] = value;
+            break;
+        // case 'textEdit.newText': {
+        //     const newText = response.textEdit?.newText
+        //     if ( newText ) response.textEdit!.newText = value;
+        //     break;
+        // }
+        case 'kind': // Doesn't seem to work
+            response.kind = Enum.CompletionItemKind.GetEnumItems().find( ( item ) => `Enum.CompletionItemKind.${item.Name}` === value ) ?? Enum.CompletionItemKind.Color;
+            break;
+        case 'overloads':
+            response.overloads = tonumber( value )
+            break;
+        case 'preselect':
+            response.preselect = value.lower() === 'true';
+            break;
+        case 'documentation':
+            response.documentation = { value: value }
+            break;
+        // Handle other properties here
+    }
+}
+
+export function CreateResponseItem ( module: ModuleScript | Instance ) {
+    const response = responseItems[module.GetFullName()] ?? {
+        label: module.Name,
+        kind: Enum.CompletionItemKind.Class,
+        detail: `Import ${module.Name}`,
+        documentation: {
+            value: `Create a variable for the ${module.Name.find( "Service" )[0] ? module.Name : module.Name + " service"}.`
+        },
+        overloads: 0,
+        learnMoreLink: "",
+        codeSample: "",
+        preselect: false,
+        textEdit: {
+            newText: "",
+            replace: { start: { line: 0, character: 0 }, ["end"]: { line: 0, character: 0 } }
+        }
+    };
+
+    if ( t.instanceOf( "ModuleScript" )( module ) ) {
+        response.kind = Enum.CompletionItemKind.Module;
+
+        let loops = 0
+        for ( const line of module.Source.split( "\n" ) ) {
+            if ( loops >= 10 ) break
+            loops++
+
+            const lowerLine = line.lower();
+
+            for ( const property of RESPONSE_PROPERTIES ) {
+                const propertyIndex = lowerLine.find( `--${property.lower()}:` )[0];
+                if ( propertyIndex ) {
+                    const startIndex = lowerLine.find( '"', propertyIndex )[0] || lowerLine.find( "'", propertyIndex )[0];
+                    if ( startIndex ) {
+                        const endIndex = lowerLine.find( '"', startIndex + 1 )[0] || lowerLine.find( "'", startIndex + 1 )[0];
+                        if ( endIndex ) {
+                            const extractedValue = string.sub( line, startIndex + 1, endIndex - 1 );
+                            UpdateResponseProperty( response, property, extractedValue );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    responseItems[module.GetFullName()] = response;
+}
 
 export function IsAlreadyImported ( scriptContent: string, importString: string ) {
     const scriptLines = scriptContent.split( '\n' );
@@ -18,7 +97,7 @@ export function IsAlreadyImported ( scriptContent: string, importString: string 
 }
 
 export function CreateImportStatement ( object: ModuleScript | Instance ) {
-    if ( object.IsA( "ModuleScript" ) ) return `local ${object.Name} = require(${GetModulePath( object )})`
+    if ( object.IsA( "ModuleScript" ) ) return `local ${object.Name} = require(${object.GetFullName()})` // COME BACK TO
     else return `local ${object.Name} = game:GetService("${object.Name}")`
 }
 
@@ -40,29 +119,20 @@ export function GetWordFromTypedText ( text: string, cursorChar: number ) {
     return currentWord;
 }
 
-export function GetImportsFromTypedText ( text: string, scriptContent: string ) {
-    const imports: Imports = {
-        modules: new Array<ModuleScript>(),
-        services: new Array<Instance>(),
+export function GetResponseItemsFromTypedText ( text: string, scriptContent: string ) {
+    const imports: Record<string, ResponseItem> = {}
+
+    for ( const [path, response] of pairs( responseItems ) ) {
+        const isImport = response.label.find( text )[0] !== undefined;
+        if ( !isImport ) continue;
+
+        const instance = services.find( ( service ) => service.GetFullName() === path ) ?? moduleScripts.find( ( module ) => module.GetFullName() === path )
+        if ( !instance ) continue
+
+        const importStatement = CreateImportStatement( instance )
+        const isImported = IsAlreadyImported( scriptContent, importStatement );
+        if ( !isImported ) imports[path] = response;
     }
-
-    services.forEach( ( service ) => {
-        const isImport = service.Name.find( text )[0] !== undefined;
-        if ( !isImport ) return;
-
-        const importStatement = CreateImportStatement( service )
-        const isImported = IsAlreadyImported( scriptContent, importStatement );
-        if ( !isImported ) imports.services.push( service );
-    } )
-
-    moduleScripts.forEach( ( moduleScript ) => {
-        const isImport = moduleScript.Name.find( text )[0] !== undefined;
-        if ( !isImport ) return;
-
-        const importStatement = CreateImportStatement( moduleScript )
-        const isImported = IsAlreadyImported( scriptContent, importStatement );
-        if ( !isImported ) imports.modules.push( moduleScript );
-    } );
 
     return imports;
 }
@@ -73,23 +143,6 @@ export function GetServiceOfModule ( moduleScript: ModuleScript ) {
     }
 }
 
-export function GetModulePath ( module: ModuleScript ): string {
-    const modulePathSegments = [];
-
-    let currentParent = module.Parent;
-    while ( currentParent !== undefined ) {
-        if ( services.includes( currentParent ) ) {
-            modulePathSegments.unshift( currentParent.Name );
-            break;
-        }
-        modulePathSegments.unshift( currentParent.Name );
-        currentParent = currentParent.Parent;
-    }
-
-    modulePathSegments.push( `${module.Name}` );
-    return modulePathSegments.join( '.' );
-}
-
 function AddModuleImport ( module: ModuleScript ) {
     const hasExcludedAncestor = GetState().exclude.ancestors.some( ancestorName => module.FindFirstAncestor( ancestorName ) !== undefined );
     if ( hasExcludedAncestor ) return;
@@ -98,6 +151,7 @@ function AddModuleImport ( module: ModuleScript ) {
     if ( isExcludedModule ) return;
 
     moduleScripts.push( module );
+    CreateResponseItem( module )
 }
 
 export function SetModuleImports () {
@@ -120,8 +174,10 @@ export function SetServiceImports () {
             print( `${EDITOR_NAME}: Did you spell the name correctly?` );
         }
 
-        if ( success && serviceInstance! )
+        if ( success && serviceInstance! ) {
             services.push( serviceInstance );
+            CreateResponseItem( serviceInstance )
+        }
     } )
 }
 
