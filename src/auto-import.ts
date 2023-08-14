@@ -1,4 +1,4 @@
-import { GenerateModulePath, GetImportsFromTypedText, GetServiceOfModule, GetWordFromTypedText, IsAlreadyImported, moduleScripts, services } from 'utils';
+import { GetModulePath, GetImportsFromTypedText, GetServiceOfModule, GetWordFromTypedText, IsAlreadyImported, moduleScripts, services, CreateImportStatement } from 'utils';
 
 const ScriptEditorService = game.GetService( 'ScriptEditorService' );
 const StudioService = game.GetService( 'StudioService' );
@@ -6,10 +6,10 @@ const StudioService = game.GetService( 'StudioService' );
 function ImportService ( document: ScriptDocument, service: Instance ) {
 	const scriptContents = document.GetText();
 
-	const isServiceRequired = IsAlreadyImported( scriptContents, service.Name );
+	const importStatement = CreateImportStatement( service )
+	const isServiceRequired = IsAlreadyImported( scriptContents, importStatement );
 	if ( !isServiceRequired ) {
-		const requireStatement = `local ${service.Name} = game:GetService("${service.Name}")`;
-		document.EditTextAsync( `${requireStatement}\n`, 1, 1, 0, 0 );
+		document.EditTextAsync( `${importStatement}\n`, 1, 1, 0, 0 );
 	}
 }
 
@@ -20,11 +20,10 @@ function ImportModuleScript ( document: ScriptDocument, moduleScript: ModuleScri
 	ImportService( document, service )
 
 	const scriptContents = document.GetText();
-	const modulePath = GenerateModulePath( moduleScript );
-	const isModuleRequired = IsAlreadyImported( scriptContents, modulePath );
+	const importStatement = CreateImportStatement( moduleScript )
+	const isModuleRequired = IsAlreadyImported( scriptContents, importStatement );
 	if ( !isModuleRequired ) {
-		const requireModuleStatement = `local ${moduleScript.Name} = require(${modulePath})`;
-		document.EditTextAsync( `\n${requireModuleStatement}`, 2, 1, 0, 0 );
+		document.EditTextAsync( `\n${importStatement}`, 2, 1, 0, 0 );
 	}
 }
 
@@ -54,7 +53,6 @@ export function AutocompleteCallback ( request: Request, response: Response ) {
 	if ( currentWord.size() === 0 ) return response
 
 	const currentScriptContents = document.GetText();
-	print( currentWord )
 	const imports = GetImportsFromTypedText( currentWord, currentScriptContents );
 
 	const replace = {

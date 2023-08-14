@@ -5,10 +5,21 @@ export const services = new Array<Instance>();
 export const moduleScripts = new Array<ModuleScript>();
 
 export function IsAlreadyImported ( scriptContent: string, importString: string ) {
-    const importStatement = `local ${importString}`
     const scriptLines = scriptContent.split( '\n' );
-    const importLine = scriptLines.find( ( line ) => string.find( line, importStatement )[0] !== undefined );
-    return importLine !== undefined;
+    for ( const line of scriptLines ) {
+        const cleanedLine = string.gsub( line, '\n', '' )[0];
+        if ( cleanedLine.size() === 0 ) continue
+
+        const cleanedImportString = string.gsub( importString, '\n', '' )[0];
+        if ( cleanedImportString === cleanedLine )
+            return true;
+    }
+    return false;
+}
+
+export function CreateImportStatement ( object: ModuleScript | Instance ) {
+    if ( object.IsA( "ModuleScript" ) ) return `local ${object.Name} = require(${GetModulePath( object )})`
+    else return `local ${object.Name} = game:GetService("${object.Name}")`
 }
 
 export function GetWordFromTypedText ( text: string, cursorChar: number ) {
@@ -39,7 +50,9 @@ export function GetImportsFromTypedText ( text: string, scriptContent: string ) 
         const isImport = service.Name.find( text )[0] !== undefined;
         if ( !isImport ) return;
 
-        const isImported = IsAlreadyImported( scriptContent, service.Name );
+        const importStatement = CreateImportStatement( service )
+        print( scriptContent )
+        const isImported = IsAlreadyImported( scriptContent, importStatement );
         if ( !isImported ) imports.services.push( service );
     } )
 
@@ -47,7 +60,8 @@ export function GetImportsFromTypedText ( text: string, scriptContent: string ) 
         const isImport = moduleScript.Name.find( text )[0] !== undefined;
         if ( !isImport ) return;
 
-        const isImported = IsAlreadyImported( scriptContent, moduleScript.Name );
+        const importStatement = CreateImportStatement( moduleScript )
+        const isImported = IsAlreadyImported( scriptContent, importStatement );
         if ( !isImported ) imports.modules.push( moduleScript );
     } );
 
@@ -60,7 +74,7 @@ export function GetServiceOfModule ( moduleScript: ModuleScript ) {
     }
 }
 
-export function GenerateModulePath ( module: ModuleScript ): string {
+export function GetModulePath ( module: ModuleScript ): string {
     const modulePathSegments = [];
 
     let currentParent = module.Parent;
