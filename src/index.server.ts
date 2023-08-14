@@ -3,8 +3,8 @@
 import { AutocompleteCallback, DocumentChangeEvent } from "auto-import";
 import { EDITOR_NAME } from "constants";
 import { globals } from "global";
-import { DisplayStateModule, GenerateStateModule, StateModule, documentClosedEvent } from "state";
-import { RegisterScriptAddedEvents } from "utils";
+import { DisplayStateModule, GenerateStateModule, SaveData, StateModule } from "state";
+import { RegisterScriptAddedEvents, SetModuleImports, SetServiceImports } from "utils";
 
 
 const ScriptEditorService = game.GetService( "ScriptEditorService" );
@@ -14,6 +14,7 @@ const isTesting = RunService.IsRunning()
 
 if ( !isTesting ) {
 	globals.plugin = plugin
+
 	const toolbar = plugin.CreateToolbar( "MyToolbar" );
 	const button = toolbar.CreateButton( "MyButton", "", "" );
 
@@ -24,6 +25,15 @@ if ( !isTesting ) {
 	GenerateStateModule()
 
 	const scriptAddedEvents = RegisterScriptAddedEvents()
+
+	const documentClosedEvent = ScriptEditorService.TextDocumentDidClose.Connect( ( oldDocument ) => {
+		if ( oldDocument.Name === `AnalyticsService.${StateModule.Name}` ) {
+			print( "data saved" )
+			SaveData()
+			SetModuleImports()
+			SetServiceImports()
+		}
+	} )
 
 	function cleanup () {
 		ScriptEditorService.DeregisterAutocompleteCallback( EDITOR_NAME );

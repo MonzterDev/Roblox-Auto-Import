@@ -58,12 +58,14 @@ interface Imports {
 	services: Array<Instance>;
 }
 
-interface SettingsModule extends ModuleScript {
-	exclude: SettingsState
-}
+type SettingsModule = ModuleScript & SettingsState
 
-type SettingsState = {
-	services: Array<string>;
-	ancestors: Array<string>;
-	modules: Array<string>;
-};
+interface SettingsState {
+	exclude: {
+		ancestors: Array<string>;
+		modules: Array<string>;
+	},
+	include: {
+		services: Array<string>;
+	}
+}

@@ -8,19 +8,47 @@ export const MODULE_DIRECTORIES = [
     'ServerStorage',
     'StarterGui',
     'StarterPack',
-    'StarterPlayerScripts',
-    'StarterCharacterScripts',
+    'StarterPlayer',
 ] as const;
 
+export const DEFAULT_SERVICES = [
+    "AssetService",
+    "CollectionService",
+    "ContextActionService",
+    "DataStoreService",
+    "Debris",
+    "HttpService",
+    "Lighting",
+    "MarketplaceService",
+    "MemoryStoreService",
+    "MessagingService",
+    "PathfindingService",
+    "PhysicsService",
+    "Players",
+    "PolicyService",
+    "ProximityPromptService",
+    "ReplicatedFirst",
+    "ReplicatedStorage",
+    "RunService",
+    "ServerScriptService",
+    "ServerStorage",
+    "StarterGui",
+    "StarterPack",
+    "StarterPlayer",
+    "Teams",
+    "TeleportService",
+]
+
 export const DEFAULT_STATE: SettingsState = {
-    services: [
-        "Players",
-        "Lighting"
-    ],
-    ancestors: [
-        "Cmdr"
-    ],
-    modules: [
-        "Test"
-    ]
+    exclude: {
+        ancestors: [
+            "Cmdr"
+        ],
+        modules: [
+            "Test"
+        ]
+    },
+    include: {
+        services: [...DEFAULT_SERVICES]
+    }
 }

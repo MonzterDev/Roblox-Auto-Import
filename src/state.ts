@@ -5,8 +5,8 @@ import { globals } from "global";
 const ScriptEditorService = game.GetService( "ScriptEditorService" );
 const AnalyticsService = game.GetService( "AnalyticsService" );
 
-export const StateModule = new Instance( "ModuleScript" )
-export let State: SettingsState = DEFAULT_STATE
+export let StateModule = new Instance( "ModuleScript" )
+let State: SettingsState = DEFAULT_STATE
 
 export function GenerateStateModule () {
     StateModule.Name = `${EDITOR_NAME}-Settings`
@@ -15,21 +15,25 @@ export function GenerateStateModule () {
 }
 
 export function DisplayStateModule () {
+    // Check if module is corrupt?
     ScriptEditorService.OpenScriptDocumentAsync( StateModule )
 }
 
 function SetStateModuleSource () {
     StateModule.Source = `return {
     exclude = {
-        services = { -- This will exclude specific services from being suggested
-            ${State.services.map( service => `"${service}"` ).join( ",\n\t\t\t" )},
-        },
         ancestors = { -- This will exclude modules which are a descendant of the ancestors
-            ${State.ancestors.map( ancestors => `"${ancestors}"` ).join( ",\n\t\t\t" )},
+            ${State.exclude.ancestors.map( ancestors => `"${ancestors}"` ).join( ",\n\t\t\t" )},
         },
         modules = { -- This will exclude modules matching this name
-            ${State.modules.map( modules => `"${modules}"` ).join( ",\n\t\t\t" )},
+            ${State.exclude.modules.map( modules => `"${modules}"` ).join( ",\n\t\t\t" )},
         },
+    },
+
+    include = {
+        services = { -- This will include services matching these names
+            ${State.include.services.map( services => `"${services}"` ).join( ",\n\t\t\t" )},
+        }
     }
 }
 
@@ -38,25 +42,41 @@ function SetStateModuleSource () {
 
 function LoadData () {
     State = {
-        services: globals.plugin.GetSetting( "services" ) as Array<string> ?? DEFAULT_STATE.services,
-        ancestors: globals.plugin.GetSetting( "ancestors" ) as Array<string> ?? DEFAULT_STATE.ancestors,
-        modules: globals.plugin.GetSetting( "modules" ) as Array<string> ?? DEFAULT_STATE.modules,
+        exclude: {
+            ancestors: globals.plugin.GetSetting( "exclude_ancestors" ) as Array<string> ?? DEFAULT_STATE.exclude.ancestors,
+            modules: globals.plugin.GetSetting( "exclude_modules" ) as Array<string> ?? DEFAULT_STATE.exclude.modules,
+        },
+        include: {
+            services: globals.plugin.GetSetting( "include_services" ) as Array<string> ?? DEFAULT_STATE.include.services,
+        }
     }
+
     SetStateModuleSource()
 }
 
-function SaveData ( scriptDocument: ScriptDocument ) {
-    const stateModule = require( scriptDocument.GetScript() as ModuleScript ) as SettingsModule
-    const exclude = stateModule.exclude
+export function SaveData () {
+    const newModule = StateModule.Clone()
+    newModule.Parent = AnalyticsService
+    StateModule.Destroy()
 
-    for ( const [key, value] of pairs( exclude ) ) {
-        if ( t.array( t.string )( value ) )
-            globals.plugin.SetSetting( key, value )
+    StateModule = newModule
+    const stateModule = require( StateModule ) as SettingsModule // Must create another Module because old one doesn't update when required a second time.
+
+    for ( const [key, value] of pairs( stateModule.exclude ) ) {
+        if ( t.array( t.string )( value ) ) {
+            globals.plugin.SetSetting( `exclude_${key}`, value )
+            State.exclude[key] = value
+        }
+    }
+
+    for ( const [key, value] of pairs( stateModule.include ) ) {
+        if ( t.array( t.string )( value ) ) {
+            globals.plugin.SetSetting( `include_${key}`, value )
+            State.include[key] = value
+        }
     }
 }
 
-export const documentClosedEvent = ScriptEditorService.TextDocumentDidClose.Connect( ( oldDocument ) => {
-    if ( oldDocument.Name === `AnalyticsService.${StateModule.Name}` ) {
-        SaveData( oldDocument )
-    }
-} )
+export function GetState () {
+    return State
+}

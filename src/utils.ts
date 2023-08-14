@@ -1,6 +1,7 @@
 import { MODULE_DIRECTORIES } from "constants";
+import { GetState } from "state";
 
-export const services = game.GetChildren()
+export const services = new Array<Instance>();
 export const moduleScripts = new Array<ModuleScript>();
 
 export function IsAlreadyImported ( scriptContent: string, importString: string ) {
@@ -76,6 +77,35 @@ export function GenerateModulePath ( module: ModuleScript ): string {
     return modulePathSegments.join( '.' );
 }
 
+function AddModuleImport ( module: ModuleScript ) {
+    const hasExcludedAncestor = GetState().exclude.ancestors.some( ancestorName => module.FindFirstAncestor( ancestorName ) !== undefined );
+    if ( hasExcludedAncestor ) return;
+
+    const isExcludedModule = GetState().exclude.modules.includes( module.Name )
+    if ( isExcludedModule ) return;
+
+    moduleScripts.push( module );
+}
+
+export function SetModuleImports () {
+    moduleScripts.clear()
+    MODULE_DIRECTORIES.forEach( ( directory ) => {
+        const service = game.GetService( directory as never ) as Instance;
+        service.GetDescendants().forEach( ( descendant ) => {
+            if ( descendant.IsA( 'ModuleScript' ) ) AddModuleImport( descendant )
+        } )
+    } )
+}
+
+export function SetServiceImports () {
+    services.clear()
+    GetState().include.services.forEach( ( service ) => {
+        const serviceInstance = game.GetService( service as never ) as Instance;
+        if ( serviceInstance )
+            services.push( serviceInstance );
+    } )
+}
+
 export function RegisterScriptAddedEvents () {
     const connections = new Array<RBXScriptConnection>();
 
@@ -84,24 +114,20 @@ export function RegisterScriptAddedEvents () {
         if ( service === undefined ) return;
 
         const addedEvent = service.DescendantAdded.Connect( ( descendant ) => {
-            if ( descendant.IsA( 'ModuleScript' ) ) {
-                moduleScripts.push( descendant as ModuleScript );
-            }
+            if ( descendant.IsA( 'ModuleScript' ) ) AddModuleImport( descendant )
         } );
 
         const removingEvent = service.DescendantRemoving.Connect( ( descendant ) => {
             if ( descendant.IsA( 'ModuleScript' ) ) {
-                moduleScripts.push( descendant as ModuleScript );
+                const index = moduleScripts.indexOf( descendant as ModuleScript );
+                if ( index !== -1 ) moduleScripts.remove( index )
             }
         } );
 
         connections.push( addedEvent, removingEvent );
 
-        service.GetDescendants().forEach( ( descendant ) => {
-            if ( descendant.IsA( 'ModuleScript' ) ) {
-                moduleScripts.push( descendant as ModuleScript );
-            }
-        } )
+        SetModuleImports()
+        SetServiceImports()
     } )
 
     return connections;
