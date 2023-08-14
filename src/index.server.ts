@@ -1,7 +1,8 @@
 /// <reference types="@rbxts/types/plugin" />
 
-import { DocumentChangeEvent, RegisterScriptAddedEvents } from "auto-complete";
+import { AutocompleteCallback, DocumentChangeEvent } from "auto-import";
 import { EDITOR_NAME } from "constants";
+import { RegisterScriptAddedEvents } from "utils";
 
 const ScriptEditorService = game.GetService( "ScriptEditorService" );
 
@@ -22,3 +23,5 @@ function cleanup () {
 
 plugin.Deactivation.Once( () => cleanup() )
 plugin.Unloading.Once( () => cleanup() )
+
+ScriptEditorService.RegisterAutocompleteCallback( EDITOR_NAME, 99, AutocompleteCallback )

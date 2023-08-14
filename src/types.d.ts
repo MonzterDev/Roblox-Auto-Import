@@ -52,3 +52,8 @@ type Change = {
 type ChangesArray = Array<Change>;
 
 type SelectionTuple = LuaTuple<[CursorLine: number, CursorChar: number, AnchorLine: number, AnchorChar: number]>;
+
+interface Imports {
+	modules: Array<ModuleScript>;
+	services: Array<Instance>;
+}
