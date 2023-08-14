@@ -15,8 +15,9 @@ const isTesting = RunService.IsRunning()
 if ( !isTesting ) {
 	globals.plugin = plugin
 
-	const toolbar = plugin.CreateToolbar( "MyToolbar" );
-	const button = toolbar.CreateButton( "MyButton", "", "" );
+	const toolbar = plugin.CreateToolbar( "Auto Importer" );
+	const button = toolbar.CreateButton( "Settings", "", "rbxassetid://1507949215" );
+	button.ClickableWhenViewportHidden = true
 
 	button.Click.Connect( () => {
 		DisplayStateModule()
@@ -27,8 +28,8 @@ if ( !isTesting ) {
 	const scriptAddedEvents = RegisterScriptAddedEvents()
 
 	const documentClosedEvent = ScriptEditorService.TextDocumentDidClose.Connect( ( oldDocument ) => {
-		if ( oldDocument.Name === `AnalyticsService.${StateModule.Name}` ) {
-			print( "data saved" )
+		const wasSettingsDocument = oldDocument.Name === `AnalyticsService.${StateModule.Name}`
+		if ( wasSettingsDocument ) {
 			SaveData()
 			SetModuleImports()
 			SetServiceImports()

@@ -2,6 +2,8 @@ import { t } from "@rbxts/t";
 import { DEFAULT_STATE, EDITOR_NAME } from "constants"
 import { globals } from "global";
 
+// I got the idea from Roblox-LSP :P
+
 const ScriptEditorService = game.GetService( "ScriptEditorService" );
 const AnalyticsService = game.GetService( "AnalyticsService" );
 
@@ -15,7 +17,6 @@ export function GenerateStateModule () {
 }
 
 export function DisplayStateModule () {
-    // Check if module is corrupt?
     ScriptEditorService.OpenScriptDocumentAsync( StateModule )
 }
 
@@ -60,7 +61,15 @@ export function SaveData () {
     StateModule.Destroy()
 
     StateModule = newModule
-    const stateModule = require( StateModule ) as SettingsModule // Must create another Module because old one doesn't update when required a second time.
+    let stateModule: SettingsModule
+    const [success, response] = pcall( () => stateModule = require( StateModule ) as SettingsModule ) // Must create another Module because old one doesn't update when required a second time.
+    if ( !success ?? !stateModule! ) {
+        warn( `${EDITOR_NAME}: ${response}` )
+        print( `${EDITOR_NAME}: Did you mess up the settings table?` )
+        print( `${EDITOR_NAME}: Your setting changes have been reverted.` )
+        LoadData()
+        return
+    }
 
     for ( const [key, value] of pairs( stateModule.exclude ) ) {
         if ( t.array( t.string )( value ) ) {
@@ -75,6 +84,8 @@ export function SaveData () {
             State.include[key] = value
         }
     }
+
+    print( `${EDITOR_NAME}: Settings have been saved` )
 }
 
 export function GetState () {

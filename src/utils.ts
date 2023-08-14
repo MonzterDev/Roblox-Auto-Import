@@ -1,4 +1,4 @@
-import { MODULE_DIRECTORIES } from "constants";
+import { EDITOR_NAME, MODULE_DIRECTORIES } from "constants";
 import { GetState } from "state";
 
 export const services = new Array<Instance>();
@@ -113,8 +113,14 @@ export function SetModuleImports () {
 export function SetServiceImports () {
     services.clear()
     GetState().include.services.forEach( ( service ) => {
-        const serviceInstance = game.GetService( service as never ) as Instance;
-        if ( serviceInstance )
+        let serviceInstance: Instance
+        const [success, response] = pcall( () => serviceInstance = game.GetService( service as never ) as Instance )
+        if ( !success ) {
+            warn( `${EDITOR_NAME}: Failed to get service "${service}".` );
+            print( `${EDITOR_NAME}: Did you spell the name correctly?` );
+        }
+
+        if ( success && serviceInstance! )
             services.push( serviceInstance );
     } )
 }
