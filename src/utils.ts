@@ -51,7 +51,6 @@ export function GetImportsFromTypedText ( text: string, scriptContent: string ) 
         if ( !isImport ) return;
 
         const importStatement = CreateImportStatement( service )
-        print( scriptContent )
         const isImported = IsAlreadyImported( scriptContent, importStatement );
         if ( !isImported ) imports.services.push( service );
     } )
