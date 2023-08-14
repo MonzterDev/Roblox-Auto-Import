@@ -1,6 +1,6 @@
 /// <reference types="@rbxts/types/plugin" />
 
-import { AutocompleteCallback, DocumentChangeEvent } from "auto-import";
+import { AutocompleteCallback, Events } from "auto-import";
 import { EDITOR_NAME } from "constants";
 import { globals } from "global";
 import { DisplayStateModule, GenerateStateModule, SaveData, StateModule } from "state";
@@ -38,7 +38,9 @@ if ( !isTesting ) {
 
 	function cleanup () {
 		ScriptEditorService.DeregisterAutocompleteCallback( EDITOR_NAME );
-		DocumentChangeEvent.Disconnect()
+		for ( const [index, event] of pairs( Events ) )
+			event.Disconnect()
+
 		scriptAddedEvents.forEach( event => event.Disconnect() )
 		documentClosedEvent.Disconnect()
 		StateModule.Destroy()

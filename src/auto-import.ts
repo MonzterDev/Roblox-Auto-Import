@@ -1,6 +1,6 @@
 import { EDITOR_NAME } from 'constants';
 import { GetState } from 'state';
-import { GetResponseItemsFromTypedText, GetServiceOfModule, GetWordFromTypedText, IsAlreadyImported, moduleScripts, services, CreateImportStatement, responseItems, CreateResponseItem } from 'utils';
+import { GetResponseItemsFromTypedText, GetServiceOfModule, GetWordFromTypedText, IsAlreadyImported, moduleScripts, services, CreateImportStatement, responseItems, CreateResponseItem, SetEditorContext } from 'utils';
 
 const ScriptEditorService = game.GetService( 'ScriptEditorService' );
 const StudioService = game.GetService( 'StudioService' );
@@ -79,8 +79,12 @@ export function AutocompleteCallback ( request: Request, response: Response ) {
 	const currentWord = GetWordFromTypedText( currentLineText, request.position.character );
 	if ( currentWord.size() === 0 ) return response
 
+	SetEditorContext()
+
 	const currentScriptContents = document.GetText();
 	const imports = GetResponseItemsFromTypedText( currentWord, currentScriptContents );
+
+	print( "IMPORTS: ", imports )
 
 	const replace = {
 		start: {
@@ -93,6 +97,7 @@ export function AutocompleteCallback ( request: Request, response: Response ) {
 		},
 	};
 
+	print( "IMPORTS ,", imports )
 	for ( const [path, item] of pairs( imports ) ) {
 		const responseItem = responseItems[path];
 		if ( !responseItem ) return;
@@ -108,16 +113,18 @@ export function AutocompleteCallback ( request: Request, response: Response ) {
 	return response;
 }
 
-export const DocumentChangeEvent = ScriptEditorService.TextDocumentDidChange.Connect( ( document, changes ) => {
-	const isActiveScript = StudioService.ActiveScript?.Name === document.GetScript()?.Name;
-	if ( !isActiveScript ) return;
+export const Events = {
+	DocumentChangeEvent: ScriptEditorService.TextDocumentDidChange.Connect( ( document, changes ) => {
+		const isActiveScript = StudioService.ActiveScript?.Name === document.GetScript()?.Name;
+		if ( !isActiveScript ) return;
 
-	const changesArray = changes as ChangesArray;
-	for ( const change of changesArray ) {
-		Import( change.text, document )
+		const changesArray = changes as ChangesArray;
+		for ( const change of changesArray ) {
+			Import( change.text, document )
 
-		const inRangeOfModuleProps = change.range.start.line >= 0 && change.range.end.line <= 10
-		if ( inRangeOfModuleProps )
-			CreateResponseItem( document.GetScript() )
-	}
-} );
+			const inRangeOfModuleProps = change.range.start.line >= 0 && change.range.end.line <= 10
+			if ( inRangeOfModuleProps )
+				CreateResponseItem( document.GetScript() )
+		}
+	} ),
+}

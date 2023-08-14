@@ -35,6 +35,8 @@ export const DEFAULT_SERVICES = [
     "StarterGui",
     "StarterPack",
     "StarterPlayer",
+    "StarterCharacterScripts",
+    "StarterPlayerScripts",
     "Teams",
     "TeleportService",
 ]

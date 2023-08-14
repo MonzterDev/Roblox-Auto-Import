@@ -2,9 +2,12 @@ import { t } from "@rbxts/t";
 import { EDITOR_NAME, MODULE_DIRECTORIES } from "constants";
 import { GetState } from "state";
 
+const StudioService = game.GetService( 'StudioService' );
+
 export const services = new Array<Instance>();
 export const moduleScripts = new Array<ModuleScript>();
 export const responseItems: Record<string, ResponseItem> = {}
+export let scriptEditorContext: "client" | "server" | "shared" = "server"
 
 const RESPONSE_PROPERTIES = ["kind", "tags", "detail", "overloads", "learnMoreLink", "codeSample", "preselect", "textEdit.newText", "documentation"] as const;
 
@@ -40,7 +43,7 @@ export function CreateResponseItem ( module: ModuleScript | Instance ) {
     const response = responseItems[module.GetFullName()] ?? {
         label: module.Name,
         kind: Enum.CompletionItemKind.Class,
-        detail: `Import ${module.Name}`,
+        detail: `${module.GetFullName()}`,
         documentation: {
             value: `Create a variable for the ${module.Name.find( "Service" )[0] ? module.Name : module.Name + " service"}.`
         },
@@ -56,6 +59,10 @@ export function CreateResponseItem ( module: ModuleScript | Instance ) {
 
     if ( t.instanceOf( "ModuleScript" )( module ) ) {
         response.kind = Enum.CompletionItemKind.Module;
+        response.documentation = {
+            value: `Create a variable for the ${module.Name} Module.`
+        }
+
 
         let loops = 0
         for ( const line of module.Source.split( "\n" ) ) {
@@ -119,6 +126,67 @@ export function GetWordFromTypedText ( text: string, cursorChar: number ) {
     return currentWord;
 }
 
+const CONTEXT_DIRECTORIES = {
+    client: ["StarterPlayerScripts", "StarterCharacterScripts", "StarterPlayer", "StarterPack", "StarterGui"],
+    server: ["ServerStorage", "ServerScriptService"]
+}
+
+export function SetEditorContext () {
+    const activeScript = StudioService.ActiveScript
+    if ( !activeScript ) return
+
+    for ( const [key, values] of pairs( CONTEXT_DIRECTORIES ) ) {
+        const theServices: Instance[] = [];
+        for ( const value of values ) {
+            const service = services.find( ( service ) => service.Name === value );
+            if ( service ) {
+                theServices.push( service );
+            }
+        }
+
+        for ( const service of theServices ) {
+            if ( service.IsAncestorOf( activeScript ) ) {
+                scriptEditorContext = key;
+                print( `Context: ${scriptEditorContext}` );
+                break;
+            }
+        }
+    }
+}
+
+export function GetModuleContext ( moduleScript: ModuleScript ) {
+    for ( const [key, values] of pairs( CONTEXT_DIRECTORIES ) ) {
+        const theServices: Instance[] = [];
+        for ( const value of values ) {
+            const service = services.find( ( service ) => service.Name === value );
+            if ( service ) {
+                theServices.push( service );
+            }
+        }
+
+        print( theServices )
+        print( moduleScript.Name )
+        for ( const service of theServices ) {
+            if ( service.IsAncestorOf( moduleScript ) ) {
+                if ( CONTEXT_DIRECTORIES.client.includes( service.Name as any ) )
+                    return "client"
+                else if ( CONTEXT_DIRECTORIES.server.includes( service.Name as any ) )
+                    return "server"
+            }
+        }
+    }
+
+    return "shared"
+
+    // const service = GetServiceOfModule( moduleScript )
+    // if ( !service ) return
+
+    // if ( CONTEXT_DIRECTORIES.client.includes( service.Name as any ) )
+    //     return "client"
+    // else if ( CONTEXT_DIRECTORIES.server.includes( service.Name as any ) )
+    //     return "server"
+}
+
 export function GetResponseItemsFromTypedText ( text: string, scriptContent: string ) {
     const imports: Record<string, ResponseItem> = {}
 
@@ -131,9 +199,32 @@ export function GetResponseItemsFromTypedText ( text: string, scriptContent: str
 
         const importStatement = CreateImportStatement( instance )
         const isImported = IsAlreadyImported( scriptContent, importStatement );
-        if ( !isImported ) imports[path] = response;
-    }
+        if ( isImported ) continue
 
+        if ( instance.IsA( "ModuleScript" ) ) {
+            const context = GetModuleContext( instance as ModuleScript )
+            print( context, scriptEditorContext )
+            if ( context === "shared" ?? context === scriptEditorContext ) {
+                imports[path] = response;
+            }
+        } else {
+            let context
+            if ( CONTEXT_DIRECTORIES.client.includes( instance.Name as any ) )
+                context = "client"
+            else if ( CONTEXT_DIRECTORIES.server.includes( instance.Name as any ) )
+                context = "server"
+            else context = "shared"
+
+            print( "ELSE ", context, scriptEditorContext )
+            if ( context !== "shared" && scriptEditorContext === "shared" ) {
+                imports[path] = response;
+            }
+            if ( context === "shared" ?? context === scriptEditorContext ) {
+                print( "HERE" )
+                imports[path] = response;
+            }
+        };
+    }
     return imports;
 }
 
