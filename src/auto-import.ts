@@ -8,7 +8,7 @@ function ImportService ( document: ScriptDocument, service: Instance ) {
 
 	const isServiceRequired = IsAlreadyImported( scriptContents, service.Name );
 	if ( !isServiceRequired ) {
-		const requireStatement = `local ${service.Name} = game.GetService("${service.Name}")`;
+		const requireStatement = `local ${service.Name} = game:GetService("${service.Name}")`;
 		document.EditTextAsync( `${requireStatement}\n`, 1, 1, 0, 0 );
 	}
 }
@@ -45,14 +45,16 @@ function Import ( lineText: string, document: ScriptDocument ) {
 
 export function AutocompleteCallback ( request: Request, response: Response ) {
 	const document = request.textDocument.document;
-	if ( !document ) return;
+	if ( !document ) return response
 
 	const currentLine = document.GetLine( request.position.line );
 	const currentLineText = currentLine.sub( 0, request.position.character );
 
 	const currentWord = GetWordFromTypedText( currentLineText, request.position.character );
+	if ( currentWord.size() === 0 ) return response
 
 	const currentScriptContents = document.GetText();
+	print( currentWord )
 	const imports = GetImportsFromTypedText( currentWord, currentScriptContents );
 
 	const replace = {
