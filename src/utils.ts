@@ -1,111 +1,21 @@
 import { t } from "@rbxts/t";
-import { EDITOR_NAME, MODULE_DIRECTORIES } from "constants";
+import { ResponseItemClass } from "ResponseItemClass";
+import { CONTEXT_DIRECTORIES, EDITOR_NAME, MODULE_DIRECTORIES } from "constants";
 import { GetState } from "state";
 
 const StudioService = game.GetService( 'StudioService' );
 
 export const services = new Array<Instance>();
 export const moduleScripts = new Array<ModuleScript>();
-export const responseItems: Record<string, ResponseItem> = {}
-export let scriptEditorContext: "client" | "server" | "shared" = "server"
+export const responseItems: Record<string, ResponseItemClass> = {}
+export let scriptEditorContext: Context = "server"
 
-const RESPONSE_PROPERTIES = ["kind", "tags", "detail", "overloads", "learnMoreLink", "codeSample", "preselect", "textEdit.newText", "documentation"] as const;
-
-function UpdateResponseProperty ( response: ResponseItem, prop: string, value: string ) {
-    switch ( prop ) {
-        case 'detail':
-        case 'learnMoreLink':
-        case 'codeSample':
-            response[prop] = value;
-            break;
-        // case 'textEdit.newText': {
-        //     const newText = response.textEdit?.newText
-        //     if ( newText ) response.textEdit!.newText = value;
-        //     break;
-        // }
-        case 'kind': // Doesn't seem to work
-            response.kind = Enum.CompletionItemKind.GetEnumItems().find( ( item ) => `Enum.CompletionItemKind.${item.Name}` === value ) ?? Enum.CompletionItemKind.Color;
-            break;
-        case 'overloads':
-            response.overloads = tonumber( value )
-            break;
-        case 'preselect':
-            response.preselect = value.lower() === 'true';
-            break;
-        case 'documentation':
-            response.documentation = { value: value }
-            break;
-        // Handle other properties here
-    }
+export function CreateResponseItem ( instance: ModuleScript | Instance ) {
+    responseItems[instance.GetFullName()] = new ResponseItemClass( instance );
 }
 
-export function CreateResponseItem ( module: ModuleScript | Instance ) {
-    const response = responseItems[module.GetFullName()] ?? {
-        label: module.Name,
-        kind: Enum.CompletionItemKind.Class,
-        detail: `${module.GetFullName()}`,
-        documentation: {
-            value: `Create a variable for the ${module.Name.find( "Service" )[0] ? module.Name : module.Name + " service"}.`
-        },
-        overloads: 0,
-        learnMoreLink: "",
-        codeSample: "",
-        preselect: false,
-        textEdit: {
-            newText: "",
-            replace: { start: { line: 0, character: 0 }, ["end"]: { line: 0, character: 0 } }
-        }
-    };
-
-    if ( t.instanceOf( "ModuleScript" )( module ) ) {
-        response.kind = Enum.CompletionItemKind.Module;
-        response.documentation = {
-            value: `Create a variable for the ${module.Name} Module.`
-        }
-
-
-        let loops = 0
-        for ( const line of module.Source.split( "\n" ) ) {
-            if ( loops >= 10 ) break
-            loops++
-
-            const lowerLine = line.lower();
-
-            for ( const property of RESPONSE_PROPERTIES ) {
-                const propertyIndex = lowerLine.find( `--${property.lower()}:` )[0];
-                if ( propertyIndex ) {
-                    const startIndex = lowerLine.find( '"', propertyIndex )[0] || lowerLine.find( "'", propertyIndex )[0];
-                    if ( startIndex ) {
-                        const endIndex = lowerLine.find( '"', startIndex + 1 )[0] || lowerLine.find( "'", startIndex + 1 )[0];
-                        if ( endIndex ) {
-                            const extractedValue = string.sub( line, startIndex + 1, endIndex - 1 );
-                            UpdateResponseProperty( response, property, extractedValue );
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    responseItems[module.GetFullName()] = response;
-}
-
-export function IsAlreadyImported ( scriptContent: string, importString: string ) {
-    const scriptLines = scriptContent.split( '\n' );
-    for ( const line of scriptLines ) {
-        const cleanedLine = string.gsub( line, '\n', '' )[0];
-        if ( cleanedLine.size() === 0 ) continue
-
-        const cleanedImportString = string.gsub( importString, '\n', '' )[0];
-        if ( cleanedImportString === cleanedLine )
-            return true;
-    }
-    return false;
-}
-
-export function CreateImportStatement ( object: ModuleScript | Instance ) {
-    if ( object.IsA( "ModuleScript" ) ) return `local ${object.Name} = require(${object.GetFullName()})` // COME BACK TO
-    else return `local ${object.Name} = game:GetService("${object.Name}")`
+export function GetResponseItem ( instance: ModuleScript | Instance ) {
+    return responseItems[instance.GetFullName()]
 }
 
 export function GetWordFromTypedText ( text: string, cursorChar: number ) {
@@ -124,11 +34,6 @@ export function GetWordFromTypedText ( text: string, cursorChar: number ) {
 
     const currentWord = text.sub( startCharacter, cursorChar - 1 );
     return currentWord;
-}
-
-const CONTEXT_DIRECTORIES = {
-    client: ["StarterPlayerScripts", "StarterCharacterScripts", "StarterPlayer", "StarterPack", "StarterGui"],
-    server: ["ServerStorage", "ServerScriptService"]
 }
 
 export function SetEditorContext () {
@@ -154,84 +59,28 @@ export function SetEditorContext () {
     }
 }
 
-export function GetModuleContext ( moduleScript: ModuleScript ) {
-    for ( const [key, values] of pairs( CONTEXT_DIRECTORIES ) ) {
-        const theServices: Instance[] = [];
-        for ( const value of values ) {
-            const service = services.find( ( service ) => service.Name === value );
-            if ( service ) {
-                theServices.push( service );
-            }
-        }
-
-        print( theServices )
-        print( moduleScript.Name )
-        for ( const service of theServices ) {
-            if ( service.IsAncestorOf( moduleScript ) ) {
-                if ( CONTEXT_DIRECTORIES.client.includes( service.Name as any ) )
-                    return "client"
-                else if ( CONTEXT_DIRECTORIES.server.includes( service.Name as any ) )
-                    return "server"
-            }
-        }
-    }
-
-    return "shared"
-
-    // const service = GetServiceOfModule( moduleScript )
-    // if ( !service ) return
-
-    // if ( CONTEXT_DIRECTORIES.client.includes( service.Name as any ) )
-    //     return "client"
-    // else if ( CONTEXT_DIRECTORIES.server.includes( service.Name as any ) )
-    //     return "server"
-}
-
 export function GetResponseItemsFromTypedText ( text: string, scriptContent: string ) {
-    const imports: Record<string, ResponseItem> = {}
+    const imports: Record<string, ResponseItemClass> = {}
 
     for ( const [path, response] of pairs( responseItems ) ) {
-        const isImport = response.label.find( text )[0] !== undefined;
-        if ( !isImport ) continue;
+        const isAnImport = response.label.find( text )[0] !== undefined;
+        if ( !isAnImport ) continue;
 
-        const instance = services.find( ( service ) => service.GetFullName() === path ) ?? moduleScripts.find( ( module ) => module.GetFullName() === path )
-        if ( !instance ) continue
+        print( "Is an import:", isAnImport )
 
-        const importStatement = CreateImportStatement( instance )
-        const isImported = IsAlreadyImported( scriptContent, importStatement );
-        if ( isImported ) continue
+        const isAlreadyImported = response.IsAlreadyImported( scriptContent )
+        if ( isAlreadyImported ) continue
 
-        if ( instance.IsA( "ModuleScript" ) ) {
-            const context = GetModuleContext( instance as ModuleScript )
-            print( context, scriptEditorContext )
-            if ( context === "shared" ?? context === scriptEditorContext ) {
-                imports[path] = response;
-            }
-        } else {
-            let context
-            if ( CONTEXT_DIRECTORIES.client.includes( instance.Name as any ) )
-                context = "client"
-            else if ( CONTEXT_DIRECTORIES.server.includes( instance.Name as any ) )
-                context = "server"
-            else context = "shared"
+        print( "isAlreadyImported:", isAlreadyImported )
 
-            print( "ELSE ", context, scriptEditorContext )
-            if ( context !== "shared" && scriptEditorContext === "shared" ) {
-                imports[path] = response;
-            }
-            if ( context === "shared" ?? context === scriptEditorContext ) {
-                print( "HERE" )
-                imports[path] = response;
-            }
-        };
+        const isContextCompatible = response.IsContextCompatible( scriptEditorContext )
+        if ( !isContextCompatible ) continue
+
+        print( "isContextCompatible: ", isContextCompatible )
+
+        imports[path] = response
     }
     return imports;
-}
-
-export function GetServiceOfModule ( moduleScript: ModuleScript ) {
-    for ( const service of services ) {
-        if ( service.IsAncestorOf( moduleScript ) ) return service;
-    }
 }
 
 function AddModuleImport ( module: ModuleScript ) {

@@ -1,6 +1,8 @@
+import Object from '@rbxts/object-utils';
+import { ResponseItemClass } from 'ResponseItemClass';
 import { EDITOR_NAME } from 'constants';
 import { GetState } from 'state';
-import { GetResponseItemsFromTypedText, GetServiceOfModule, GetWordFromTypedText, IsAlreadyImported, moduleScripts, services, CreateImportStatement, responseItems, CreateResponseItem, SetEditorContext } from 'utils';
+import { GetResponseItemsFromTypedText, GetWordFromTypedText, responseItems, CreateResponseItem, SetEditorContext, GetResponseItem } from 'utils';
 
 const ScriptEditorService = game.GetService( 'ScriptEditorService' );
 const StudioService = game.GetService( 'StudioService' );
@@ -15,58 +17,53 @@ function GetLastServiceLine ( document: ScriptDocument ) {
 	return 1
 }
 
-
-
-function ImportService ( document: ScriptDocument, service: Instance ) {
+function TryImportService ( document: ScriptDocument, response: ResponseItemClass ) {
 	const scriptContents = document.GetText();
+	const isServiceRequired = response.IsAlreadyImported( scriptContents );
+	if ( isServiceRequired ) return
 
-	const importStatement = CreateImportStatement( service )
-	const isServiceRequired = IsAlreadyImported( scriptContents, importStatement );
+	const importStatement = response.GetImportStatement()
 	const lineConfig = GetState().importLines.services
-	if ( !isServiceRequired ) {
-		const text = lineConfig.newLine === "Above" ? `\n${importStatement}` : `${importStatement}\n`
-		const lastServiceLine = GetLastServiceLine( document )
-		const [success, result] = pcall( () => document.EditTextAsync( text, lastServiceLine, lineConfig.start.character, lineConfig.finish.line, lineConfig.finish.character ) )
-		if ( !success ) {
-			warn( `${EDITOR_NAME}: ${result}` )
-			print( `${EDITOR_NAME}: Did you mess up the import lines for Services?` )
-		}
+	const text = lineConfig.newLine === "Above" ? `\n${importStatement}` : `${importStatement}\n`
+	const lastServiceLine = GetLastServiceLine( document )
+	const [success, result] = pcall( () => document.EditTextAsync( text, lastServiceLine, lineConfig.start.character, lineConfig.finish.line, lineConfig.finish.character ) )
+	if ( !success ) {
+		warn( `${EDITOR_NAME}: ${result}` )
+		print( `${EDITOR_NAME}: Did you mess up the import lines for Services?` )
 	}
 }
 
-function ImportModuleScript ( document: ScriptDocument, moduleScript: ModuleScript ) {
-	const service = GetServiceOfModule( moduleScript );
+function TryImportModuleScript ( document: ScriptDocument, response: ResponseItemClass ) {
+	const scriptContents = document.GetText();
+	const isModuleRequired = response.IsAlreadyImported( scriptContents );
+	if ( isModuleRequired ) return
+
+	const service = response.serviceAncestor
 	if ( service === undefined ) return;
 
-	ImportService( document, service )
+	const serviceResponse = GetResponseItem( service )
+	TryImportService( document, serviceResponse )
 
-	const scriptContents = document.GetText();
-	const importStatement = CreateImportStatement( moduleScript )
-	const isModuleRequired = IsAlreadyImported( scriptContents, importStatement );
+	const importStatement = response.GetImportStatement()
 	const lineConfig = GetState().importLines.modules
-	if ( !isModuleRequired ) {
-		const text = lineConfig.newLine === "Above" ? `\n${importStatement}` : `${importStatement}\n`
-		const lastServiceLine = GetLastServiceLine( document )
-		const [success, result] = pcall( () => document.EditTextAsync( text, lastServiceLine + 1, lineConfig.start.character, lineConfig.finish.line, lineConfig.finish.character ) )
-		if ( !success ) {
-			warn( `${EDITOR_NAME}: ${result}` )
-			print( `${EDITOR_NAME}: Did you mess up the import lines for Modules?` )
-		}
+	const text = lineConfig.newLine === "Above" ? `\n${importStatement}` : `${importStatement}\n`
+	const lastServiceLine = GetLastServiceLine( document )
+	const [success, result] = pcall( () => document.EditTextAsync( text, lastServiceLine + 1, lineConfig.start.character, lineConfig.finish.line, lineConfig.finish.character ) )
+	if ( !success ) {
+		warn( `${EDITOR_NAME}: ${result}` )
+		print( `${EDITOR_NAME}: Did you mess up the import lines for Modules?` )
 	}
 }
 
-function Import ( lineText: string, document: ScriptDocument ) {
-	for ( const module of moduleScripts ) {
-		if ( module.Name === lineText ) {
-			return ImportModuleScript( document, module )
-		}
-	}
+// This is where we import based on the line of text created after User uses an auto-complete suggestion
+function TryImport ( lineText: string, document: ScriptDocument ) {
+	const response = Object.values( GetResponseItemsFromTypedText( lineText, document.GetText() ) ).find( ( response ) => response.textEdit.newText === lineText )
+	if ( !response ) return;
 
-	for ( const service of services ) {
-		if ( service.Name === lineText ) {
-			return ImportService( document, service )
-		}
-	}
+	if ( response.type === "Module" )
+		TryImportModuleScript( document, response )
+	else
+		TryImportService( document, response )
 }
 
 export function AutocompleteCallback ( request: Request, response: Response ) {
@@ -81,10 +78,6 @@ export function AutocompleteCallback ( request: Request, response: Response ) {
 
 	SetEditorContext()
 
-	const currentScriptContents = document.GetText();
-	const imports = GetResponseItemsFromTypedText( currentWord, currentScriptContents );
-
-	print( "IMPORTS: ", imports )
 
 	const replace = {
 		start: {
@@ -97,17 +90,11 @@ export function AutocompleteCallback ( request: Request, response: Response ) {
 		},
 	};
 
-	print( "IMPORTS ,", imports )
-	for ( const [path, item] of pairs( imports ) ) {
-		const responseItem = responseItems[path];
-		if ( !responseItem ) return;
-
-		responseItem.textEdit = {
-			newText: item.label,
-			replace: replace,
-		}
-
-		response.items.push( responseItem );
+	const currentScriptContents = document.GetText();
+	const imports = GetResponseItemsFromTypedText( currentWord, currentScriptContents );
+	for ( const [path, responseItem] of pairs( imports ) ) {
+		responseItem.textEdit.replace = replace
+		response.items.push( responseItem.GetResponseItem() );
 	}
 
 	return response;
@@ -120,7 +107,7 @@ export const Events = {
 
 		const changesArray = changes as ChangesArray;
 		for ( const change of changesArray ) {
-			Import( change.text, document )
+			TryImport( change.text, document )
 
 			const inRangeOfModuleProps = change.range.start.line >= 0 && change.range.end.line <= 10
 			if ( inRangeOfModuleProps )

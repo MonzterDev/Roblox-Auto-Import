@@ -1,4 +1,4 @@
-
+type Context = "server" | "client" | "shared"
 
 type Request = {
 	position: {

@@ -40,6 +40,12 @@ export const DEFAULT_SERVICES = [
     "Teams",
     "TeleportService",
 ]
+export const CONTEXT_DIRECTORIES = {
+    client: ["StarterPlayerScripts", "StarterCharacterScripts", "StarterPlayer", "StarterPack", "StarterGui"],
+    server: ["ServerStorage", "ServerScriptService"],
+    shared: ["ReplicatedFirst", "ReplicatedStorage"],
+}
+
 
 export const DEFAULT_STATE: SettingsState = {
     exclude: {
