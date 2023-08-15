@@ -1,5 +1,6 @@
 import { t } from "@rbxts/t";
-import { CONTEXT_DIRECTORIES } from "constants";
+import { CONTEXT_DIRECTORIES } from "constants/Imports";
+import { Context, ReplaceLine, ResponseItem } from "constants/ScriptEditor";
 
 const RESPONSE_PROPERTIES = ["kind", "tags", "detail", "overloads", "learnMoreLink", "codeSample", "preselect", "textEdit.newText", "documentation"] as const;
 
@@ -65,6 +66,7 @@ export class ResponseItemClass {
             context = "server"
         return context
     }
+
 
     private GetDocumentation () {
         const name = this.instance.Name

@@ -1,10 +1,10 @@
 /// <reference types="@rbxts/types/plugin" />
 
 import { AutocompleteCallback, Events } from "auto-import";
-import { EDITOR_NAME } from "constants";
+import { EDITOR_NAME } from "constants/Imports";
 import { globals } from "global";
 import { DisplayStateModule, GenerateStateModule, SaveData, StateModule } from "state";
-import { RegisterScriptAddedEvents, SetModuleImports, SetServiceImports } from "utils";
+import { RegisterScriptAddedEvents, SetImports } from "utils";
 
 
 const ScriptEditorService = game.GetService( "ScriptEditorService" );
@@ -31,8 +31,7 @@ if ( !isTesting ) {
 		const wasSettingsDocument = oldDocument.Name === `AnalyticsService.${StateModule.Name}`
 		if ( wasSettingsDocument ) {
 			SaveData()
-			SetModuleImports()
-			SetServiceImports()
+			SetImports()
 		}
 	} )
 

@@ -1,5 +1,6 @@
 import { t } from "@rbxts/t";
-import { DEFAULT_STATE, EDITOR_NAME } from "constants"
+import { EDITOR_NAME } from "constants/Imports";
+import { DEFAULT_STATE, ImportLine, SettingsModule, SettingsState } from "constants/Settings";
 import { globals } from "global";
 
 // I got the idea from Roblox-LSP :P

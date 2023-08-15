@@ -1,12 +1,10 @@
-import { t } from "@rbxts/t";
 import { ResponseItemClass } from "ResponseItemClass";
-import { CONTEXT_DIRECTORIES, EDITOR_NAME, MODULE_DIRECTORIES } from "constants";
+import { CONTEXT_DIRECTORIES, EDITOR_NAME, MODULE_DIRECTORIES } from "constants/Imports";
+import { Context } from "constants/ScriptEditor";
 import { GetState } from "state";
 
 const StudioService = game.GetService( 'StudioService' );
 
-export const services = new Array<Instance>();
-export const moduleScripts = new Array<ModuleScript>();
 export const responseItems: Record<string, ResponseItemClass> = {}
 export let scriptEditorContext: Context = "server"
 
@@ -16,6 +14,10 @@ export function CreateResponseItem ( instance: ModuleScript | Instance ) {
 
 export function GetResponseItem ( instance: ModuleScript | Instance ) {
     return responseItems[instance.GetFullName()]
+}
+
+export function DestroyResponseItem ( instance: ModuleScript | Instance ) {
+    responseItems[instance.GetFullName()] = undefined as never
 }
 
 export function GetWordFromTypedText ( text: string, cursorChar: number ) {
@@ -41,18 +43,10 @@ export function SetEditorContext () {
     if ( !activeScript ) return
 
     for ( const [key, values] of pairs( CONTEXT_DIRECTORIES ) ) {
-        const theServices: Instance[] = [];
-        for ( const value of values ) {
-            const service = services.find( ( service ) => service.Name === value );
-            if ( service ) {
-                theServices.push( service );
-            }
-        }
-
-        for ( const service of theServices ) {
-            if ( service.IsAncestorOf( activeScript ) ) {
+        for ( const service of values ) {
+            const foundAncestor = activeScript.FindFirstAncestorWhichIsA( service as never )
+            if ( foundAncestor ) {
                 scriptEditorContext = key;
-                print( `Context: ${scriptEditorContext}` );
                 break;
             }
         }
@@ -66,17 +60,11 @@ export function GetResponseItemsFromTypedText ( text: string, scriptContent: str
         const isAnImport = response.label.find( text )[0] !== undefined;
         if ( !isAnImport ) continue;
 
-        print( "Is an import:", isAnImport )
-
         const isAlreadyImported = response.IsAlreadyImported( scriptContent )
         if ( isAlreadyImported ) continue
 
-        print( "isAlreadyImported:", isAlreadyImported )
-
         const isContextCompatible = response.IsContextCompatible( scriptEditorContext )
         if ( !isContextCompatible ) continue
-
-        print( "isContextCompatible: ", isContextCompatible )
 
         imports[path] = response
     }
@@ -90,22 +78,18 @@ function AddModuleImport ( module: ModuleScript ) {
     const isExcludedModule = GetState().exclude.modules.includes( module.Name )
     if ( isExcludedModule ) return;
 
-    moduleScripts.push( module );
     CreateResponseItem( module )
 }
 
-export function SetModuleImports () {
-    moduleScripts.clear()
+// Probably need to remove old Service imports
+export function SetImports () {
     MODULE_DIRECTORIES.forEach( ( directory ) => {
         const service = game.GetService( directory as never ) as Instance;
         service.GetDescendants().forEach( ( descendant ) => {
             if ( descendant.IsA( 'ModuleScript' ) ) AddModuleImport( descendant )
         } )
     } )
-}
 
-export function SetServiceImports () {
-    services.clear()
     GetState().include.services.forEach( ( service ) => {
         let serviceInstance: Instance
         const [success, response] = pcall( () => serviceInstance = game.GetService( service as never ) as Instance )
@@ -115,7 +99,6 @@ export function SetServiceImports () {
         }
 
         if ( success && serviceInstance! ) {
-            services.push( serviceInstance );
             CreateResponseItem( serviceInstance )
         }
     } )
@@ -129,21 +112,19 @@ export function RegisterScriptAddedEvents () {
         if ( service === undefined ) return;
 
         const addedEvent = service.DescendantAdded.Connect( ( descendant ) => {
-            if ( descendant.IsA( 'ModuleScript' ) ) AddModuleImport( descendant )
+            if ( descendant.IsA( 'ModuleScript' ) )
+                AddModuleImport( descendant )
         } );
 
         const removingEvent = service.DescendantRemoving.Connect( ( descendant ) => {
-            if ( descendant.IsA( 'ModuleScript' ) ) {
-                const index = moduleScripts.indexOf( descendant as ModuleScript );
-                if ( index !== -1 ) moduleScripts.remove( index )
-            }
+            if ( descendant.IsA( 'ModuleScript' ) )
+                DestroyResponseItem( descendant )
         } );
 
         connections.push( addedEvent, removingEvent );
-
-        SetModuleImports()
-        SetServiceImports()
     } )
+
+    SetImports()
 
     return connections;
 }

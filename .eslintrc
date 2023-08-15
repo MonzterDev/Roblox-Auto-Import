@@ -25,6 +25,7 @@
 				"useTabs": true,
 				"endOfLine": "auto"
 			}
-		]
+		],
+		"roblox-ts/no-delete": "off"
 	}
 }

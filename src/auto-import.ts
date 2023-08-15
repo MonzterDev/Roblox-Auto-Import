@@ -1,6 +1,7 @@
 import Object from '@rbxts/object-utils';
 import { ResponseItemClass } from 'ResponseItemClass';
-import { EDITOR_NAME } from 'constants';
+import { EDITOR_NAME } from 'constants/Imports';
+import { LineChange, Request, Response } from 'constants/ScriptEditor';
 import { GetState } from 'state';
 import { GetResponseItemsFromTypedText, GetWordFromTypedText, responseItems, CreateResponseItem, SetEditorContext, GetResponseItem } from 'utils';
 
@@ -105,7 +106,7 @@ export const Events = {
 		const isActiveScript = StudioService.ActiveScript?.Name === document.GetScript()?.Name;
 		if ( !isActiveScript ) return;
 
-		const changesArray = changes as ChangesArray;
+		const changesArray = changes as Array<LineChange>;
 		for ( const change of changesArray ) {
 			TryImport( change.text, document )
 
