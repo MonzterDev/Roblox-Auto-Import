@@ -1,7 +1,7 @@
 import { t } from "@rbxts/t";
-import { EDITOR_NAME } from "constants/Imports";
-import { DEFAULT_STATE, ImportLine, SettingsModule, SettingsState } from "constants/Settings";
-import { globals } from "global";
+import { EDITOR_NAME } from "constants/imports";
+import { DEFAULT_STATE, ImportLine, SettingsModule, SettingsState } from "constants/settings";
+import { globals } from "constants/global";
 
 // I got the idea from Roblox-LSP :P
 
@@ -93,7 +93,7 @@ export function SaveData () {
     StateModule = newModule
     let stateModule: SettingsModule
     const [success, response] = pcall( () => stateModule = require( StateModule ) as SettingsModule ) // Must create another Module because old one doesn't update when required a second time.
-    if ( !success ?? !stateModule! ) {
+    if ( !success || !stateModule! ) {
         warn( `${EDITOR_NAME}: ${response}` )
         print( `${EDITOR_NAME}: Did you mess up the settings table?` )
         print( `${EDITOR_NAME}: Your setting changes have been reverted.` )

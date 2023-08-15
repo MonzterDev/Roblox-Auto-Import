@@ -39,6 +39,7 @@ export const DEFAULT_SERVICES = [
     "StarterPlayerScripts",
     "Teams",
     "TeleportService",
+    "Workspace",
 ]
 
 export const CONTEXT_DIRECTORIES = {

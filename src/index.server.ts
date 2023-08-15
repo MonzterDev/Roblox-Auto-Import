@@ -1,10 +1,9 @@
 /// <reference types="@rbxts/types/plugin" />
 
-import { AutocompleteCallback, Events } from "auto-import";
-import { EDITOR_NAME } from "constants/Imports";
-import { globals } from "global";
+import { AutocompleteCallback, RegisterScriptEvents, SetImports } from "autoImport";
+import { EDITOR_NAME } from "constants/imports";
+import { globals } from "constants/global";
 import { DisplayStateModule, GenerateStateModule, SaveData, StateModule } from "state";
-import { RegisterScriptAddedEvents, SetImports } from "utils";
 
 
 const ScriptEditorService = game.GetService( "ScriptEditorService" );
@@ -16,16 +15,14 @@ if ( !isTesting ) {
 	globals.plugin = plugin
 
 	const toolbar = plugin.CreateToolbar( "Auto Importer" );
-	const button = toolbar.CreateButton( "Settings", "", "rbxassetid://14442903039" );
-	button.ClickableWhenViewportHidden = true
 
-	button.Click.Connect( () => {
-		DisplayStateModule()
-	} );
+	const settingsButton = toolbar.CreateButton( "Settings", "", "rbxassetid://14442903039" );
+	settingsButton.ClickableWhenViewportHidden = true
+	settingsButton.Click.Connect( () => DisplayStateModule() );
 
 	GenerateStateModule()
 
-	const scriptAddedEvents = RegisterScriptAddedEvents()
+	const scriptAddedEvents = RegisterScriptEvents()
 
 	const documentClosedEvent = ScriptEditorService.TextDocumentDidClose.Connect( ( oldDocument ) => {
 		const wasSettingsDocument = oldDocument.Name === `AnalyticsService.${StateModule.Name}`
@@ -37,8 +34,6 @@ if ( !isTesting ) {
 
 	function cleanup () {
 		ScriptEditorService.DeregisterAutocompleteCallback( EDITOR_NAME );
-		for ( const [index, event] of pairs( Events ) )
-			event.Disconnect()
 
 		scriptAddedEvents.forEach( event => event.Disconnect() )
 		documentClosedEvent.Disconnect()

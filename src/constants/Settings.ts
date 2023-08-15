@@ -1,4 +1,4 @@
-import { DEFAULT_SERVICES } from "./Imports";
+import { DEFAULT_SERVICES } from "./imports";
 
 export type SettingsModule = ModuleScript & SettingsState
 

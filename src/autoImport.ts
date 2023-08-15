@@ -1,12 +1,98 @@
 import Object from '@rbxts/object-utils';
-import { ResponseItemClass } from 'ResponseItemClass';
-import { EDITOR_NAME } from 'constants/Imports';
-import { LineChange, Request, Response } from 'constants/ScriptEditor';
+import { ResponseItemClass } from 'responseItemClass';
+import { CONTEXT_DIRECTORIES, EDITOR_NAME, MODULE_DIRECTORIES } from 'constants/imports';
+import { Context, LineChange, Request, Response } from 'constants/scriptEditor';
 import { GetState } from 'state';
-import { GetResponseItemsFromTypedText, GetWordFromTypedText, responseItems, CreateResponseItem, SetEditorContext, GetResponseItem } from 'utils';
+import { CreateResponseItem, DestroyResponseItem, GetResponseItem, responseItems } from 'responseItems';
 
 const ScriptEditorService = game.GetService( 'ScriptEditorService' );
 const StudioService = game.GetService( 'StudioService' );
+
+export let scriptEditorContext: Context = "server"
+
+function GetWordFromTypedText ( text: string, cursorChar: number ) {
+	let startCharacter = cursorChar;
+	let i = cursorChar - 1;
+
+	while ( i >= 0 ) {
+		const char = text.sub( i, i );
+		if ( string.match( char, '%a' )[0] )
+			startCharacter = i;
+		else
+			break;
+
+		i--;
+	}
+
+	const currentWord = text.sub( startCharacter, cursorChar - 1 );
+	return currentWord;
+}
+
+function SetEditorContext () {
+	const activeScript = StudioService.ActiveScript
+	if ( !activeScript ) return
+
+	for ( const [key, values] of pairs( CONTEXT_DIRECTORIES ) ) {
+		for ( const service of values ) {
+			const foundAncestor = activeScript.FindFirstAncestorWhichIsA( service as never )
+			if ( foundAncestor ) {
+				scriptEditorContext = key;
+				break;
+			}
+		}
+	}
+}
+
+function GetResponseItemsFromTypedText ( text: string, scriptContent: string ) {
+	const imports: Record<string, ResponseItemClass> = {}
+
+	for ( const [path, response] of pairs( responseItems ) ) {
+		const isAnImport = response.label.find( text )[0] !== undefined;
+		if ( !isAnImport ) continue;
+
+		const isAlreadyImported = response.IsAlreadyImported( scriptContent )
+		if ( isAlreadyImported ) continue
+
+		const isContextCompatible = response.IsContextCompatible( scriptEditorContext )
+		if ( !isContextCompatible ) continue
+
+		imports[path] = response
+	}
+	return imports;
+}
+
+function AddModuleImport ( module: ModuleScript ) {
+	const hasExcludedAncestor = GetState().exclude.ancestors.some( ancestorName => module.FindFirstAncestor( ancestorName ) !== undefined );
+	if ( hasExcludedAncestor ) return;
+
+	const isExcludedModule = GetState().exclude.modules.includes( module.Name )
+	if ( isExcludedModule ) return;
+
+	CreateResponseItem( module )
+}
+
+// Probably need to remove old Service imports
+export function SetImports () {
+	MODULE_DIRECTORIES.forEach( ( directory ) => {
+		const service = game.GetService( directory as never ) as Instance;
+		service.GetDescendants().forEach( ( descendant ) => {
+			if ( descendant.IsA( 'ModuleScript' ) ) AddModuleImport( descendant )
+		} )
+	} )
+
+	GetState().include.services.forEach( ( service ) => {
+		let serviceInstance: Instance
+		const [success, response] = pcall( () => serviceInstance = game.GetService( service as never ) as Instance )
+		if ( !success ) {
+			warn( `${EDITOR_NAME}: ${response}` )
+			print( `${EDITOR_NAME}: Did you spell the name correctly?` );
+		}
+
+		if ( success && serviceInstance! ) {
+			CreateResponseItem( serviceInstance )
+		}
+	} )
+}
 
 function GetLastServiceLine ( document: ScriptDocument ) {
 	const lines = document.GetText().split( "\n" );
@@ -101,8 +187,27 @@ export function AutocompleteCallback ( request: Request, response: Response ) {
 	return response;
 }
 
-export const Events = {
-	DocumentChangeEvent: ScriptEditorService.TextDocumentDidChange.Connect( ( document, changes ) => {
+export function RegisterScriptEvents () {
+	const connections = new Array<RBXScriptConnection>();
+
+	MODULE_DIRECTORIES.forEach( ( directory ) => {
+		const service = game.GetService( directory as never ) as Instance;
+		if ( service === undefined ) return;
+
+		const addedEvent = service.DescendantAdded.Connect( ( descendant ) => {
+			if ( descendant.IsA( 'ModuleScript' ) )
+				AddModuleImport( descendant )
+		} );
+
+		const removingEvent = service.DescendantRemoving.Connect( ( descendant ) => {
+			if ( descendant.IsA( 'ModuleScript' ) )
+				DestroyResponseItem( descendant )
+		} );
+
+		connections.push( addedEvent, removingEvent );
+	} )
+
+	const documentChangeEvent = ScriptEditorService.TextDocumentDidChange.Connect( ( document, changes ) => {
 		const isActiveScript = StudioService.ActiveScript?.Name === document.GetScript()?.Name;
 		if ( !isActiveScript ) return;
 
@@ -114,5 +219,11 @@ export const Events = {
 			if ( inRangeOfModuleProps )
 				CreateResponseItem( document.GetScript() )
 		}
-	} ),
+	} )
+
+	connections.push( documentChangeEvent )
+
+	SetImports()
+
+	return connections;
 }

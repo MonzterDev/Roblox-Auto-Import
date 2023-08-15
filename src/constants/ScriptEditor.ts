@@ -42,5 +42,3 @@ export type LineChange = {
     range: { start: { line: number; character: number }; end: { line: number; character: number } };
     text: string;
 };
-
-export const x = ""

@@ -1,6 +1,6 @@
 import { t } from "@rbxts/t";
-import { CONTEXT_DIRECTORIES } from "constants/Imports";
-import { Context, ReplaceLine, ResponseItem } from "constants/ScriptEditor";
+import { CONTEXT_DIRECTORIES } from "constants/imports";
+import { Context, ReplaceLine, ResponseItem } from "constants/scriptEditor";
 
 const RESPONSE_PROPERTIES = ["kind", "tags", "detail", "overloads", "learnMoreLink", "codeSample", "preselect", "textEdit.newText", "documentation"] as const;
 
@@ -133,15 +133,7 @@ export class ResponseItemClass {
     }
 
     public IsContextCompatible ( editorContext: Context ) {
-        if ( this.type === "Module" )
-            return this.context === "shared" ?? this.context === editorContext
-
-        if ( this.context !== "shared" && editorContext === "shared" )
-            return true
-        else if ( this.context === "shared" ?? this.context === editorContext )
-            return true
-
-        return false
+        return this.context === "shared" || this.context === editorContext
     }
 
     public IsAlreadyImported ( scriptContent: string ) {
