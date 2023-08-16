@@ -7,6 +7,7 @@ import { CreateResponseItem, DestroyResponseItem, GetResponseItem, responseItems
 
 const ScriptEditorService = game.GetService( 'ScriptEditorService' );
 const StudioService = game.GetService( 'StudioService' );
+const UserInputService = game.GetService( 'UserInputService' );
 
 export let scriptEditorContext: Context = "server"
 
@@ -47,7 +48,7 @@ function GetResponseItemsFromTypedText ( text: string, scriptContent: string ) {
 	const imports: Record<string, ResponseItemClass> = {}
 
 	for ( const [path, response] of pairs( responseItems ) ) {
-		const isAnImport = response.label.find( text )[0] !== undefined;
+		const isAnImport = response.detail.find( text )[0] !== undefined;
 		if ( !isAnImport ) continue;
 
 		const isAlreadyImported = response.IsAlreadyImported( scriptContent )
@@ -58,6 +59,7 @@ function GetResponseItemsFromTypedText ( text: string, scriptContent: string ) {
 
 		imports[path] = response
 	}
+
 	return imports;
 }
 
@@ -171,7 +173,6 @@ export function AutocompleteCallback ( request: Request, response: Response ) {
 	if ( currentWord.size() === 0 ) return response
 
 	SetEditorContext()
-
 
 	const replace = {
 		start: {

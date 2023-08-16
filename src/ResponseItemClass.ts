@@ -9,7 +9,7 @@ export class ResponseItemClass {
     public readonly label: string;
     private kind?: Enum.CompletionItemKind;
     private tags?: Array<Enum.CompletionItemTag>;
-    private detail?: string;
+    public detail: string;
     private documentation?: {
         value: string;
     };
@@ -42,7 +42,7 @@ export class ResponseItemClass {
         this.codeSample = ""
         this.preselect = false
         this.textEdit = {
-            newText: instance.Name,
+            newText: `${instance.GetFullName()}`,
             replace: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }
         }
 
@@ -151,7 +151,7 @@ export class ResponseItemClass {
         return false;
     }
 
-    public GetImportStatement () {
+    private GetImportStatement () {
         const name = this.instance.Name
         if ( this.type === "Module" )
             return `local ${name} = require(${this.instance.GetFullName()})`
@@ -169,6 +169,21 @@ export class ResponseItemClass {
                 return index
         }
         return 1
+    }
+
+    private CleanupModuleImport ( document: ScriptDocument ) {
+        const newLines = document.GetText().split( "\n" );
+        const importStatement = document.GetText().split( "\n" ).find( ( line ) => line.find( this.instance.GetFullName() )[0] !== undefined && line.find( "require" )[0] === undefined )
+        if ( !importStatement ) return
+
+        const importLine = newLines.indexOf( importStatement ) + 1
+        const lastCharacter = importStatement.find( this.instance.GetFullName() )[0]! + this.instance.GetFullName().size() + 1
+        const text = importStatement.gsub( this.instance.GetFullName(), this.label )[0]
+        const [success, result] = pcall( () => document.EditTextAsync( text, importLine, 1, importLine, lastCharacter ) )
+
+        const updatedImportLine = document.GetText().split( "\n" )[importLine - 1];
+        const lastCharacterOfNewImport = updatedImportLine.find( this.label )[0]! + this.label.size() + 1
+        const [success2, result2] = pcall( () => document.ForceSetSelectionAsync( importLine, lastCharacterOfNewImport - 1 ) )
     }
 
     public Import ( document: ScriptDocument ) {
@@ -206,44 +221,10 @@ export class ResponseItemClass {
             warn( `${EDITOR_NAME}: ${result} ` )
             print( `${EDITOR_NAME}: Did you mess up the import lines for Services ? ` )
         }
+
+        if ( isModule ) task.defer( () => this.CleanupModuleImport( document ) )
+
     }
-
-    // public Import ( document: ScriptDocument ) {
-    //     const isModule = this.type === "Module"
-    //     const lineConfig = isModule ? GetState().importLines.modules : GetState().importLines.services
-
-    //     let text = this.GetImportStatement()
-
-    //     const lines = document.GetText().split( "\n" );
-    //     const indexOfLastServiceLine = this.GetIndexOfLastService( document )
-
-    //     if ( !isModule ) {
-    //         text = `${text}\n`
-    //         const lineBelowImportLine = lines[indexOfLastServiceLine - 1]
-    //         const isBlankBelowImport = lineBelowImportLine === ""
-    //         if ( lineBelowImportLine === undefined || !isBlankBelowImport ) {
-    //             text = `${text}\n`
-    //         }
-    //     } else {
-    //         const importLine = lines[indexOfLastServiceLine]
-    //         const isImportLineBlank = importLine === ""
-    //         if ( !isImportLineBlank ) {
-    //             text = `\n${text}`;
-    //         }
-
-    //         const lineBelowServiceImport = lines[indexOfLastServiceLine + 1]
-    //         const isModuleRequiredBelowServiceImport = lineBelowServiceImport !== undefined && lineBelowServiceImport.find( "require" )[0]
-    //         if ( isImportLineBlank && !isModuleRequiredBelowServiceImport ) {
-    //             text = `\n${text}`;
-    //         }
-    //     }
-
-    //     const [success, result] = pcall( () => document.EditTextAsync( text, indexOfLastServiceLine, lineConfig.start.character, lineConfig.finish.line, lineConfig.finish.character ) )
-    //     if ( !success ) {
-    //         warn( `${EDITOR_NAME}: ${result} ` )
-    //         print( `${EDITOR_NAME}: Did you mess up the import lines for Services ? ` )
-    //     }
-    // }
 
     public GetResponseItem (): ResponseItem {
         return {
