@@ -16,7 +16,7 @@ if ( !isTesting ) {
 
 	const toolbar = plugin.CreateToolbar( "Auto Importer" );
 
-	const settingsButton = toolbar.CreateButton( "Settings", "", "rbxassetid://14442903039" );
+	const settingsButton = toolbar.CreateButton( "Settings", "", "rbxassetid://14456084804" );
 	settingsButton.ClickableWhenViewportHidden = true
 	settingsButton.Click.Connect( () => DisplayStateModule() );
 
