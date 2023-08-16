@@ -30,11 +30,11 @@ export class ResponseItemClass {
     constructor ( instance: Instance ) {
         this.instance = instance
 
-        this.label = instance.Name
+        this.label = instance.Name.gsub( " ", "" )[0]
         this.type = t.instanceIsA( "ModuleScript" )( instance ) ? "Module" : "Service"
 
         this.kind = this.type === "Module" ? Enum.CompletionItemKind.Module : Enum.CompletionItemKind.Class
-        this.detail = `${instance.GetFullName()}`
+        this.detail = `${instance.GetFullName().gsub( " ", "" )[0]}`
         this.documentation = {
             value: this.GetDocumentation()
         }
@@ -42,7 +42,7 @@ export class ResponseItemClass {
         this.codeSample = ""
         this.preselect = false
         this.textEdit = {
-            newText: `${instance.GetFullName()}`,
+            newText: `${instance.GetFullName().gsub( " ", "" )[0]}`,
             replace: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }
         }
 
@@ -152,9 +152,10 @@ export class ResponseItemClass {
     }
 
     private GetImportStatement () {
-        const name = this.instance.Name
+        const name = this.instance.Name.gsub( " ", "" )[0]
         if ( this.type === "Module" )
-            return `local ${name} = require(${this.instance.GetFullName()})`
+            return `local ${name} = require(${this.instance.GetFullName().gsub( " ", "" )[0]
+                })`
         else
             return `local ${name} = game:GetService("${name}")`
     }

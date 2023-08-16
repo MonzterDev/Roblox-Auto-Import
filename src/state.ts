@@ -21,6 +21,7 @@ export function DisplayStateModule () {
     ScriptEditorService.OpenScriptDocumentAsync( StateModule )
 }
 
+// Fix empty save data strings
 function SetStateModuleSource () {
     StateModule.Source = `return {
     toggle = {

@@ -39,6 +39,7 @@ export const DEFAULT_SERVICES = [
     "StarterPlayerScripts",
     "Teams",
     "TeleportService",
+    "UserInputService",
     "Workspace",
 ]
 
