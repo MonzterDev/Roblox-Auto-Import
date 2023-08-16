@@ -132,7 +132,7 @@ function TryImportService ( document: ScriptDocument, response: ResponseItemClas
 	const isServiceRequired = response.IsAlreadyImported( scriptContents );
 	if ( isServiceRequired ) return
 
-	response.EditText( document )
+	response.Import( document )
 }
 
 function TryImportModuleScript ( document: ScriptDocument, response: ResponseItemClass ) {
@@ -146,7 +146,7 @@ function TryImportModuleScript ( document: ScriptDocument, response: ResponseIte
 	const serviceResponse = GetResponseItem( service )
 	TryImportService( document, serviceResponse )
 
-	response.EditText( document )
+	response.Import( document )
 }
 
 // This is where we import based on the line of text created after User uses an auto-complete suggestion
