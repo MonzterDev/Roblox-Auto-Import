@@ -96,6 +96,7 @@ export function SetImports () {
 
 function GetLastServiceLine ( document: ScriptDocument ) {
 	const lines = document.GetText().split( "\n" );
+	// print( document.GetText().split( "\n" ).size() ) // 1
 	for ( const [index, line] of pairs( lines ) ) {
 		const cleanedLine = string.gsub( line, '\n', '' )[0];
 		if ( !cleanedLine.find( "game:GetService" )[0] )
@@ -104,20 +105,34 @@ function GetLastServiceLine ( document: ScriptDocument ) {
 	return 1
 }
 
+function GetModuleImportLine ( document: ScriptDocument, s: string ) {
+	const lastServiceLine = GetLastServiceLine( document )
+	const lines = document.GetText().split( "\n" );
+
+	const nextLine = lines[lastServiceLine]
+	if ( !nextLine || nextLine !== "" ) {
+
+	}
+
+	let lineNumber = 1
+	// print( document.GetText().split( "\n" ).size() ) // 1
+	for ( const [index, line] of pairs( lines ) ) {
+		const cleanedLine = string.gsub( line, '\n', '' )[0];
+		if ( !cleanedLine.find( "game:GetService" )[0] ) {
+			lineNumber = index
+			break
+		}
+	}
+
+	return lineNumber > lines.size() ? lines.size() - 1 : lineNumber
+}
+
 function TryImportService ( document: ScriptDocument, response: ResponseItemClass ) {
 	const scriptContents = document.GetText();
 	const isServiceRequired = response.IsAlreadyImported( scriptContents );
 	if ( isServiceRequired ) return
 
-	const importStatement = response.GetImportStatement()
-	const lineConfig = GetState().importLines.services
-	const text = lineConfig.newLine === "Above" ? `\n${importStatement}` : `${importStatement}\n`
-	const lastServiceLine = GetLastServiceLine( document )
-	const [success, result] = pcall( () => document.EditTextAsync( text, lastServiceLine, lineConfig.start.character, lineConfig.finish.line, lineConfig.finish.character ) )
-	if ( !success ) {
-		warn( `${EDITOR_NAME}: ${result}` )
-		print( `${EDITOR_NAME}: Did you mess up the import lines for Services?` )
-	}
+	response.EditText( document )
 }
 
 function TryImportModuleScript ( document: ScriptDocument, response: ResponseItemClass ) {
@@ -131,15 +146,7 @@ function TryImportModuleScript ( document: ScriptDocument, response: ResponseIte
 	const serviceResponse = GetResponseItem( service )
 	TryImportService( document, serviceResponse )
 
-	const importStatement = response.GetImportStatement()
-	const lineConfig = GetState().importLines.modules
-	const text = lineConfig.newLine === "Above" ? `\n${importStatement}` : `${importStatement}\n`
-	const lastServiceLine = GetLastServiceLine( document )
-	const [success, result] = pcall( () => document.EditTextAsync( text, lastServiceLine + 1, lineConfig.start.character, lineConfig.finish.line, lineConfig.finish.character ) )
-	if ( !success ) {
-		warn( `${EDITOR_NAME}: ${result}` )
-		print( `${EDITOR_NAME}: Did you mess up the import lines for Modules?` )
-	}
+	response.EditText( document )
 }
 
 // This is where we import based on the line of text created after User uses an auto-complete suggestion
@@ -200,6 +207,7 @@ export function RegisterScriptEvents () {
 		} );
 
 		const removingEvent = service.DescendantRemoving.Connect( ( descendant ) => {
+			print( "Removing" )
 			if ( descendant.IsA( 'ModuleScript' ) )
 				DestroyResponseItem( descendant )
 		} );
