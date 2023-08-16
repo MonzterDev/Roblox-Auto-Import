@@ -3,11 +3,10 @@ import { ResponseItemClass } from 'responseItemClass';
 import { CONTEXT_DIRECTORIES, EDITOR_NAME, MODULE_DIRECTORIES } from 'constants/imports';
 import { Context, LineChange, Request, Response } from 'constants/scriptEditor';
 import { GetState } from 'state';
-import { CreateResponseItem, DestroyResponseItem, GetResponseItem, responseItems } from 'responseItems';
+import { CreateResponseItem, DestroyResponseItem, DestroyResponseItemByName, GetResponseItem, moduleEvents, responseItems } from 'responseItems';
 
 const ScriptEditorService = game.GetService( 'ScriptEditorService' );
 const StudioService = game.GetService( 'StudioService' );
-const UserInputService = game.GetService( 'UserInputService' );
 
 export let scriptEditorContext: Context = "server"
 
@@ -77,6 +76,15 @@ function CreateModuleImport ( module: ModuleScript ) {
 	if ( isExcludedModule ) return;
 
 	CreateResponseItem( module )
+
+	const previousKey = module.GetFullName()
+	const ancestryChanged = module.AncestryChanged.Once( ( child, newParent ) => {
+		DestroyResponseItemByName( previousKey )
+		child.Parent = newParent
+		CreateModuleImport( child as ModuleScript )
+		print( "Changed" )
+	} )
+	moduleEvents[previousKey] = ancestryChanged
 }
 
 // Probably need to remove old Service imports
@@ -84,7 +92,9 @@ export function SetImports () {
 	MODULE_DIRECTORIES.forEach( ( directory ) => {
 		const service = game.GetService( directory as never ) as Instance;
 		service.GetDescendants().forEach( ( descendant ) => {
-			if ( descendant.IsA( 'ModuleScript' ) ) CreateModuleImport( descendant )
+			if ( descendant.IsA( 'ModuleScript' ) ) {
+				CreateModuleImport( descendant )
+			}
 		} )
 	} )
 
@@ -176,13 +186,16 @@ export function RegisterScriptEvents () {
 		if ( service === undefined ) return;
 
 		const addedEvent = service.DescendantAdded.Connect( ( descendant ) => {
-			if ( descendant.IsA( 'ModuleScript' ) )
+			if ( descendant.IsA( 'ModuleScript' ) ) {
 				CreateModuleImport( descendant )
+			}
 		} );
 
 		const removingEvent = service.DescendantRemoving.Connect( ( descendant ) => {
-			if ( descendant.IsA( 'ModuleScript' ) )
+			if ( descendant.IsA( 'ModuleScript' ) ) {
 				DestroyResponseItem( descendant )
+				print( "REMOVING" )
+			}
 		} );
 
 		connections.push( addedEvent, removingEvent );
