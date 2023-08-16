@@ -30,6 +30,9 @@ function SetStateModuleSource () {
         ancestors = { -- This will exclude modules which are a descendant of the ancestors
             ${State.exclude.ancestors.map( ancestors => `"${ancestors}"` ).join( ",\n\t\t\t" )},
         },
+        ancestorsTypes = { -- This will exclude modules which are a descendant of an ancestor with this type
+            ${State.exclude.ancestorsTypes.map( types => `"${types}"` ).join( ",\n\t\t\t" )},
+        },
         modules = { -- This will exclude modules matching this name
             ${State.exclude.modules.map( modules => `"${modules}"` ).join( ",\n\t\t\t" )},
         },
@@ -78,6 +81,7 @@ function LoadData () {
         exclude: {
             ancestors: globals.plugin.GetSetting( "exclude_ancestors" ) as Array<string> ?? DEFAULT_STATE.exclude.ancestors,
             modules: globals.plugin.GetSetting( "exclude_modules" ) as Array<string> ?? DEFAULT_STATE.exclude.modules,
+            ancestorsTypes: globals.plugin.GetSetting( "exclude_ancestorsTypes" ) as Array<string> ?? DEFAULT_STATE.exclude.ancestorsTypes,
         },
         include: {
             services: globals.plugin.GetSetting( "include_services" ) as Array<string> ?? DEFAULT_STATE.include.services,

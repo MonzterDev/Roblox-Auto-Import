@@ -66,9 +66,12 @@ function GetResponseItemsFromTypedText ( text: string, scriptContent: string ) {
 	return imports;
 }
 
-function AddModuleImport ( module: ModuleScript ) {
+function CreateModuleImport ( module: ModuleScript ) {
 	const hasExcludedAncestor = GetState().exclude.ancestors.some( ancestorName => module.FindFirstAncestor( ancestorName ) !== undefined );
 	if ( hasExcludedAncestor ) return;
+
+	const hasExcludedAncestorType = GetState().exclude.ancestorsTypes.some( ancestorType => module.FindFirstAncestorWhichIsA( ancestorType as never ) !== undefined );
+	if ( hasExcludedAncestorType ) return;
 
 	const isExcludedModule = GetState().exclude.modules.includes( module.Name )
 	if ( isExcludedModule ) return;
@@ -81,7 +84,7 @@ export function SetImports () {
 	MODULE_DIRECTORIES.forEach( ( directory ) => {
 		const service = game.GetService( directory as never ) as Instance;
 		service.GetDescendants().forEach( ( descendant ) => {
-			if ( descendant.IsA( 'ModuleScript' ) ) AddModuleImport( descendant )
+			if ( descendant.IsA( 'ModuleScript' ) ) CreateModuleImport( descendant )
 		} )
 	} )
 
@@ -174,11 +177,10 @@ export function RegisterScriptEvents () {
 
 		const addedEvent = service.DescendantAdded.Connect( ( descendant ) => {
 			if ( descendant.IsA( 'ModuleScript' ) )
-				AddModuleImport( descendant )
+				CreateModuleImport( descendant )
 		} );
 
 		const removingEvent = service.DescendantRemoving.Connect( ( descendant ) => {
-			print( "Removing" )
 			if ( descendant.IsA( 'ModuleScript' ) )
 				DestroyResponseItem( descendant )
 		} );

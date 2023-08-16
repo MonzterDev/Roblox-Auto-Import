@@ -15,6 +15,7 @@ export interface SettingsState {
     exclude: {
         ancestors: Array<string>;
         modules: Array<string>;
+        ancestorsTypes: Array<string>;
     },
     include: {
         services: Array<string>;
@@ -35,7 +36,10 @@ export const DEFAULT_STATE: SettingsState = {
         ],
         modules: [
             "Test"
-        ]
+        ],
+        ancestorsTypes: [
+            "Module"
+        ],
     },
     include: {
         services: [...DEFAULT_SERVICES]
