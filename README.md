@@ -38,7 +38,7 @@ Join me on [**YouTube**](https://www.youtube.com/@MonzterDEV) for the highest qu
 ### 📲 Discord
 Need some help? Have a suggestion? Want to give feedback? Feel free to join our [**Discord**](https://discord.gg/LearnRoblox)!
 
-<img src="https://discordapp.com/api/guilds/555614080765919242/widget.png?style=banner1" alt="Discord Banner 1"/>
+<a href="https://discord.gg/LearnRoblox"><img src="https://discordapp.com/api/guilds/555614080765919242/widget.png?style=banner1" alt="Discord Banner 1"/></a>
 
 ## 💾 Installation
 
