@@ -46,9 +46,12 @@ function SetEditorContext () {
 
 function GetResponseItemsFromTypedText ( text: string, scriptContent: string ) {
 	const imports: Record<string, ResponseItemClass> = {}
+	const isCaseSensitive = GetState().toggle.caseSensitive;
 
 	for ( const [path, response] of pairs( responseItems ) ) {
-		const isAnImport = response.detail.find( text )[0] !== undefined;
+		const textToMatch = isCaseSensitive ? text : text.lower();
+		const responseText = isCaseSensitive ? response.detail : response.detail.lower();
+		const isAnImport = responseText.find( textToMatch )[0] !== undefined;
 		if ( !isAnImport ) continue;
 
 		const isAlreadyImported = response.IsAlreadyImported( scriptContent )
@@ -94,39 +97,6 @@ export function SetImports () {
 			CreateResponseItem( serviceInstance )
 		}
 	} )
-}
-
-function GetLastServiceLine ( document: ScriptDocument ) {
-	const lines = document.GetText().split( "\n" );
-	// print( document.GetText().split( "\n" ).size() ) // 1
-	for ( const [index, line] of pairs( lines ) ) {
-		const cleanedLine = string.gsub( line, '\n', '' )[0];
-		if ( !cleanedLine.find( "game:GetService" )[0] )
-			return index
-	}
-	return 1
-}
-
-function GetModuleImportLine ( document: ScriptDocument, s: string ) {
-	const lastServiceLine = GetLastServiceLine( document )
-	const lines = document.GetText().split( "\n" );
-
-	const nextLine = lines[lastServiceLine]
-	if ( !nextLine || nextLine !== "" ) {
-
-	}
-
-	let lineNumber = 1
-	// print( document.GetText().split( "\n" ).size() ) // 1
-	for ( const [index, line] of pairs( lines ) ) {
-		const cleanedLine = string.gsub( line, '\n', '' )[0];
-		if ( !cleanedLine.find( "game:GetService" )[0] ) {
-			lineNumber = index
-			break
-		}
-	}
-
-	return lineNumber > lines.size() ? lines.size() - 1 : lineNumber
 }
 
 function TryImportService ( document: ScriptDocument, response: ResponseItemClass ) {

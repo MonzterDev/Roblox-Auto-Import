@@ -9,6 +9,9 @@ export type ImportLine = {
 }
 
 export interface SettingsState {
+    toggle: {
+        caseSensitive: boolean,
+    },
     exclude: {
         ancestors: Array<string>;
         modules: Array<string>;
@@ -23,6 +26,9 @@ export interface SettingsState {
 }
 
 export const DEFAULT_STATE: SettingsState = {
+    toggle: {
+        caseSensitive: false,
+    },
     exclude: {
         ancestors: [
             "Cmdr"

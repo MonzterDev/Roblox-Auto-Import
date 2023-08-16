@@ -23,6 +23,9 @@ export function DisplayStateModule () {
 
 function SetStateModuleSource () {
     StateModule.Source = `return {
+    toggle = {
+        caseSensitive = ${State.toggle.caseSensitive},
+    },
     exclude = {
         ancestors = { -- This will exclude modules which are a descendant of the ancestors
             ${State.exclude.ancestors.map( ancestors => `"${ancestors}"` ).join( ",\n\t\t\t" )},
@@ -69,6 +72,9 @@ function SetStateModuleSource () {
 
 function LoadData () {
     State = {
+        toggle: {
+            caseSensitive: globals.plugin.GetSetting( "toggle_caseSensitive" ) as boolean ?? DEFAULT_STATE.toggle.caseSensitive,
+        },
         exclude: {
             ancestors: globals.plugin.GetSetting( "exclude_ancestors" ) as Array<string> ?? DEFAULT_STATE.exclude.ancestors,
             modules: globals.plugin.GetSetting( "exclude_modules" ) as Array<string> ?? DEFAULT_STATE.exclude.modules,
@@ -99,6 +105,13 @@ export function SaveData () {
         print( `${EDITOR_NAME}: Your setting changes have been reverted.` )
         LoadData()
         return
+    }
+
+    for ( const [key, value] of pairs( stateModule.toggle ) ) {
+        if ( t.boolean( value ) ) {
+            globals.plugin.SetSetting( `toggle_${key}`, value )
+            State.toggle[key] = value
+        }
     }
 
     for ( const [key, value] of pairs( stateModule.exclude ) ) {
