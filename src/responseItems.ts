@@ -1,4 +1,3 @@
-import { t } from "@rbxts/t";
 import { ResponseItemClass } from "responseItemClass";
 
 export const responseItems: Record<string, ResponseItemClass> = {}
@@ -15,7 +14,6 @@ function DisconnectModuleEvent ( name: string ) {
 export function CreateResponseItem ( instance: ModuleScript | Instance ) {
     DisconnectModuleEvent( instance.GetFullName() )
     responseItems[instance.GetFullName()] = new ResponseItemClass( instance );
-    print( "Added: ", instance.GetFullName() )
 }
 
 export function GetResponseItem ( instance: ModuleScript | Instance ) {

@@ -80,9 +80,7 @@ function CreateModuleImport ( module: ModuleScript ) {
 	const previousKey = module.GetFullName()
 	const ancestryChanged = module.AncestryChanged.Once( ( child, newParent ) => {
 		DestroyResponseItemByName( previousKey )
-		child.Parent = newParent
 		CreateModuleImport( child as ModuleScript )
-		print( "Changed" )
 	} )
 	moduleEvents[previousKey] = ancestryChanged
 }
