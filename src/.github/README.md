@@ -20,7 +20,7 @@ Roblox Auto Import is a powerful plugin designed to enhance your scripting exper
 ### Roblox Marketplace
 Installing the plugin is a breeze through the [Roblox Marketplace](https://create.roblox.com/marketplace/asset/14443707366/Auto-Import), and the best part is, it's **free**!
 
-There is also a paid version (100 Robux), which is literally the exact same thing, but enables anyone who wants to support me using Robux. It can be found [here](https://www.roblox.com/library/14457646433/Auto-Import)!
+There is also a paid version (100 Robux), which is literally the exact same thing, but enables anyone who wants to support me using Robux. It can be found [here](https://create.roblox.com/marketplace/asset/14457646433/Auto-Import-Paid)!
 
 ## 💬 Social
 
