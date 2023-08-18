@@ -1,4 +1,4 @@
-import { DEFAULT_SERVICES } from "./imports";
+import { CONTEXT_DIRECTORIES, DEFAULT_SERVICES } from "./imports";
 
 export type SettingsModule = ModuleScript & SettingsState
 
@@ -24,6 +24,11 @@ export interface SettingsState {
         services: ImportLine,
         modules: ImportLine,
     },
+    context: {
+        server: Array<string>;
+        shared: Array<string>;
+        client: Array<string>;
+    }
 }
 
 export const DEFAULT_STATE: SettingsState = {
@@ -67,5 +72,11 @@ export const DEFAULT_STATE: SettingsState = {
                 character: 0
             }
         },
+    },
+
+    context: {
+        server: [...CONTEXT_DIRECTORIES.server],
+        shared: [...CONTEXT_DIRECTORIES.shared],
+        client: [...CONTEXT_DIRECTORIES.client],
     }
 }

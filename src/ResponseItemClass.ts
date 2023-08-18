@@ -27,14 +27,14 @@ export class ResponseItemClass {
     public readonly instance: Instance | ModuleScript
     public readonly serviceAncestor: Instance | undefined // Set for Modules to indicate where they're stored
 
-    constructor ( instance: Instance ) {
+    constructor(instance: Instance) {
         this.instance = instance
 
-        this.label = instance.Name.gsub( " ", "" )[0]
-        this.type = t.instanceIsA( "ModuleScript" )( instance ) ? "Module" : "Service"
+        this.label = instance.Name.gsub(" ", "")[0]
+        this.type = t.instanceIsA("ModuleScript")(instance) ? "Module" : "Service"
 
         this.kind = this.type === "Module" ? Enum.CompletionItemKind.Module : Enum.CompletionItemKind.Class
-        this.detail = `${instance.GetFullName().gsub( " ", "" )[0]}`
+        this.detail = `${instance.GetFullName().gsub(" ", "")[0]}`
         this.documentation = {
             value: this.GetDocumentation()
         }
@@ -42,12 +42,12 @@ export class ResponseItemClass {
         this.codeSample = ""
         this.preselect = false
         this.textEdit = {
-            newText: `${instance.GetFullName().gsub( " ", "" )[0]}`,
+            newText: `${instance.GetFullName().gsub(" ", "")[0]}`,
             replace: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }
         }
 
-        for ( const service of game.GetChildren() ) {
-            if ( service.IsAncestorOf( this.instance ) ) {
+        for (const service of game.GetChildren()) {
+            if (service.IsAncestorOf(this.instance)) {
                 this.serviceAncestor = service
                 break
             }
@@ -58,29 +58,31 @@ export class ResponseItemClass {
         this.UpdateCustomProps()
     }
 
-    private GetContext () {
+    private GetContext() {
         const serviceName = this.type === "Module" ? this.serviceAncestor!.Name : this.instance.Name
         let context: Context = "shared"
-        if ( CONTEXT_DIRECTORIES.client.includes( serviceName ) )
+        const contextDirectories = GetState().context ?? CONTEXT_DIRECTORIES
+        if (contextDirectories.client.includes(serviceName))
             context = "client"
-        else if ( CONTEXT_DIRECTORIES.server.includes( serviceName ) )
+        else if (contextDirectories.server.includes(serviceName))
             context = "server"
+
         return context
     }
 
 
-    private GetDocumentation () {
+    private GetDocumentation() {
         const name = this.instance.Name
-        if ( this.type === "Module" )
+        if (this.type === "Module")
             return `Create a variable for the ${name} Module.`
         else {
-            const serviceName = name.find( "Service" )[0] ? name : name + " service"
+            const serviceName = name.find("Service")[0] ? name : name + " service"
             return `Create a variable for the ${serviceName}.`
         }
     }
 
-    private UpdateResponseProperty ( prop: string, value: string ) {
-        switch ( prop ) {
+    private UpdateResponseProperty(prop: string, value: string) {
+        switch (prop) {
             case 'detail':
             case 'learnMoreLink':
             case 'codeSample':
@@ -92,10 +94,10 @@ export class ResponseItemClass {
             //     break;
             // }
             case 'kind': // Doesn't seem to work
-                this.kind = Enum.CompletionItemKind.GetEnumItems().find( ( item ) => `Enum.CompletionItemKind.${item.Name}` === value ) ?? Enum.CompletionItemKind.Color;
+                this.kind = Enum.CompletionItemKind.GetEnumItems().find((item) => `Enum.CompletionItemKind.${item.Name}` === value) ?? Enum.CompletionItemKind.Color;
                 break;
             case 'overloads':
-                this.overloads = tonumber( value )
+                this.overloads = tonumber(value)
                 break;
             case 'preselect':
                 this.preselect = value.lower() === 'true';
@@ -107,25 +109,25 @@ export class ResponseItemClass {
         }
     }
 
-    private UpdateCustomProps () {
-        if ( !t.instanceIsA( "ModuleScript" )( this.instance ) ) return
+    private UpdateCustomProps() {
+        if (!t.instanceIsA("ModuleScript")(this.instance)) return
 
         let loops = 0
-        for ( const line of this.instance.Source.split( "\n" ) ) {
-            if ( loops >= 10 ) break
+        for (const line of this.instance.Source.split("\n")) {
+            if (loops >= 10) break
             loops++
 
             const lowerLine = line.lower();
 
-            for ( const property of RESPONSE_PROPERTIES ) {
-                const propertyIndex = lowerLine.find( `--${property.lower()}:` )[0];
-                if ( propertyIndex ) {
-                    const startIndex = lowerLine.find( '"', propertyIndex )[0] || lowerLine.find( "'", propertyIndex )[0];
-                    if ( startIndex ) {
-                        const endIndex = lowerLine.find( '"', startIndex + 1 )[0] || lowerLine.find( "'", startIndex + 1 )[0];
-                        if ( endIndex ) {
-                            const extractedValue = string.sub( line, startIndex + 1, endIndex - 1 );
-                            this.UpdateResponseProperty( property, extractedValue );
+            for (const property of RESPONSE_PROPERTIES) {
+                const propertyIndex = lowerLine.find(`--${property.lower()}:`)[0];
+                if (propertyIndex) {
+                    const startIndex = lowerLine.find('"', propertyIndex)[0] || lowerLine.find("'", propertyIndex)[0];
+                    if (startIndex) {
+                        const endIndex = lowerLine.find('"', startIndex + 1)[0] || lowerLine.find("'", startIndex + 1)[0];
+                        if (endIndex) {
+                            const extractedValue = string.sub(line, startIndex + 1, endIndex - 1);
+                            this.UpdateResponseProperty(property, extractedValue);
                         }
                     }
                 }
@@ -133,101 +135,101 @@ export class ResponseItemClass {
         }
     }
 
-    public IsContextCompatible ( editorContext: Context ) {
+    public IsContextCompatible(editorContext: Context) {
         return this.context === "shared" || this.context === editorContext
     }
 
-    public IsAlreadyImported ( scriptContent: string ) {
+    public IsAlreadyImported(scriptContent: string) {
         const importStatement = this.GetImportStatement()
-        const scriptLines = scriptContent.split( '\n' );
-        for ( const line of scriptLines ) {
-            const cleanedLine = string.gsub( line, '\n', '' )[0];
-            if ( cleanedLine.size() === 0 ) continue
+        const scriptLines = scriptContent.split('\n');
+        for (const line of scriptLines) {
+            const cleanedLine = string.gsub(line, '\n', '')[0];
+            if (cleanedLine.size() === 0) continue
 
-            const cleanedImportString = string.gsub( importStatement, '\n', '' )[0];
-            if ( cleanedImportString === cleanedLine )
+            const cleanedImportString = string.gsub(importStatement, '\n', '')[0];
+            if (cleanedImportString === cleanedLine)
                 return true;
         }
         return false;
     }
 
-    private GetImportStatement () {
-        const name = this.instance.Name.gsub( " ", "" )[0]
-        if ( this.type === "Module" )
-            return `local ${name} = require(${this.instance.GetFullName().gsub( " ", "" )[0]
+    private GetImportStatement() {
+        const name = this.instance.Name.gsub(" ", "")[0]
+        if (this.type === "Module")
+            return `local ${name} = require(${this.instance.GetFullName().gsub(" ", "")[0]
                 })`
         else
             return `local ${name} = game:GetService("${name}")`
     }
 
     // Index is 1 greater than the line number
-    private GetIndexOfLastService ( document: ScriptDocument ) {
-        const lines = document.GetText().split( "\n" );
+    private GetIndexOfLastService(document: ScriptDocument) {
+        const lines = document.GetText().split("\n");
 
-        for ( const [index, line] of pairs( lines ) ) {
-            const cleanedLine = string.gsub( line, '\n', '' )[0];
-            if ( !cleanedLine.find( "game:GetService" )[0] )
+        for (const [index, line] of pairs(lines)) {
+            const cleanedLine = string.gsub(line, '\n', '')[0];
+            if (!cleanedLine.find("game:GetService")[0])
                 return index
         }
         return 1
     }
 
-    private CleanupModuleImport ( document: ScriptDocument ) {
-        const newLines = document.GetText().split( "\n" );
-        const importStatement = document.GetText().split( "\n" ).find( ( line ) => line.find( this.instance.GetFullName() )[0] !== undefined && line.find( "require" )[0] === undefined )
-        if ( !importStatement ) return
+    private CleanupModuleImport(document: ScriptDocument) {
+        const newLines = document.GetText().split("\n");
+        const importStatement = document.GetText().split("\n").find((line) => line.find(this.instance.GetFullName())[0] !== undefined && line.find("require")[0] === undefined)
+        if (!importStatement) return
 
-        const importLine = newLines.indexOf( importStatement ) + 1
-        const lastCharacter = importStatement.find( this.instance.GetFullName() )[0]! + this.instance.GetFullName().size() + 1
-        const text = importStatement.gsub( this.instance.GetFullName(), this.label )[0]
-        const [success, result] = pcall( () => document.EditTextAsync( text, importLine, 1, importLine, lastCharacter ) )
+        const importLine = newLines.indexOf(importStatement) + 1
+        const lastCharacter = importStatement.find(this.instance.GetFullName())[0]! + this.instance.GetFullName().size() + 1
+        const text = importStatement.gsub(this.instance.GetFullName(), this.label)[0]
+        const [success, result] = pcall(() => document.EditTextAsync(text, importLine, 1, importLine, lastCharacter))
 
-        const updatedImportLine = document.GetText().split( "\n" )[importLine - 1];
-        const lastCharacterOfNewImport = updatedImportLine.find( this.label )[0]! + this.label.size() + 1
-        const [success2, result2] = pcall( () => document.ForceSetSelectionAsync( importLine, lastCharacterOfNewImport - 1 ) )
+        const updatedImportLine = document.GetText().split("\n")[importLine - 1];
+        const lastCharacterOfNewImport = updatedImportLine.find(this.label)[0]! + this.label.size() + 1
+        const [success2, result2] = pcall(() => document.ForceSetSelectionAsync(importLine, lastCharacterOfNewImport - 1))
     }
 
-    public Import ( document: ScriptDocument ) {
+    public Import(document: ScriptDocument) {
         const isModule = this.type === "Module"
         const lineConfig = isModule ? GetState().importLines.modules : GetState().importLines.services
 
         let text = this.GetImportStatement()
 
-        const lines = document.GetText().split( "\n" );
-        const indexOfLastServiceLine = this.GetIndexOfLastService( document )
+        const lines = document.GetText().split("\n");
+        const indexOfLastServiceLine = this.GetIndexOfLastService(document)
 
-        if ( !isModule ) {
+        if (!isModule) {
             text = `${text}\n`
             const lineBelowImportLine = lines[indexOfLastServiceLine - 1]
             const isBlankBelowImport = lineBelowImportLine === ""
-            if ( lineBelowImportLine === undefined || !isBlankBelowImport ) {
+            if (lineBelowImportLine === undefined || !isBlankBelowImport) {
                 text = `${text}\n`
             }
         } else {
             const importLine = lines[indexOfLastServiceLine]
             const isImportLineBlank = importLine === ""
-            if ( !isImportLineBlank ) {
+            if (!isImportLineBlank) {
                 text = `\n${text}`;
             }
 
             const lineBelowServiceImport = lines[indexOfLastServiceLine + 1]
-            const isModuleRequiredBelowServiceImport = lineBelowServiceImport !== undefined && lineBelowServiceImport.find( "require" )[0]
-            if ( isImportLineBlank && !isModuleRequiredBelowServiceImport ) {
+            const isModuleRequiredBelowServiceImport = lineBelowServiceImport !== undefined && lineBelowServiceImport.find("require")[0]
+            if (isImportLineBlank && !isModuleRequiredBelowServiceImport) {
                 text = `\n${text}`;
             }
         }
 
-        const [success, result] = pcall( () => document.EditTextAsync( text, indexOfLastServiceLine, lineConfig.start.character, lineConfig.finish.line, lineConfig.finish.character ) )
-        if ( !success ) {
-            warn( `${EDITOR_NAME}: ${result} ` )
-            print( `${EDITOR_NAME}: Did you mess up the import lines for Services ? ` )
+        const [success, result] = pcall(() => document.EditTextAsync(text, indexOfLastServiceLine, lineConfig.start.character, lineConfig.finish.line, lineConfig.finish.character))
+        if (!success) {
+            warn(`${EDITOR_NAME}: ${result} `)
+            print(`${EDITOR_NAME}: Did you mess up the import lines for Services ? `)
         }
 
-        if ( isModule ) task.defer( () => this.CleanupModuleImport( document ) )
+        if (isModule) task.defer(() => this.CleanupModuleImport(document))
 
     }
 
-    public GetResponseItem (): ResponseItem {
+    public GetResponseItem(): ResponseItem {
         return {
             label: this.label,
             kind: this.kind,

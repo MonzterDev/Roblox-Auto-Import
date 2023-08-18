@@ -2,7 +2,7 @@ import Object from '@rbxts/object-utils';
 import { ResponseItemClass } from 'responseItemClass';
 import { CONTEXT_DIRECTORIES, EDITOR_NAME, MODULE_DIRECTORIES } from 'constants/imports';
 import { Context, LineChange, Request, Response } from 'constants/scriptEditor';
-import { GetState } from 'state';
+import { GetState, StateModule } from 'state';
 import { CreateResponseItem, DestroyResponseItem, DestroyResponseItemByName, GetResponseItem, moduleEvents, responseItems } from 'responseItems';
 
 const ScriptEditorService = game.GetService('ScriptEditorService');
@@ -32,7 +32,8 @@ function SetEditorContext() {
 	const activeScript = StudioService.ActiveScript
 	if (!activeScript) return
 
-	for (const [key, values] of pairs(CONTEXT_DIRECTORIES)) {
+	const contextDirectories = GetState().context ?? CONTEXT_DIRECTORIES
+	for (const [key, values] of pairs(contextDirectories)) {
 		for (const service of values) {
 			const foundAncestor = activeScript.FindFirstAncestorWhichIsA(service as never)
 			if (foundAncestor) {
