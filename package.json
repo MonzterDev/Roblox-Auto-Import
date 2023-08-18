@@ -1,15 +1,15 @@
 {
-  "name": "rts-auto-complete",
+  "name": "roblox-auto-import",
   "version": "1.0.0",
-  "description": "",
+  "description": "Automatically import Services & Module scripts while scripting in Roblox Studio!",
   "main": "index.js",
   "scripts": {
     "build": "rbxtsc",
     "watch": "rbxtsc -w"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["import"],
+  "author": "MonzterDEV",
+  "license": "Apache-2.0",
   "devDependencies": {
     "@rbxts/compiler-types": "^2.1.1-types.0",
     "@rbxts/types": "^1.0.708",
