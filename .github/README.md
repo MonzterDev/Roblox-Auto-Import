@@ -1,13 +1,13 @@
 <h1 align="center">Roblox Auto Import</h1>
 
 <div align="center">
-    <img src="assets/logo-color.png" alt="Auto Import a Roblox Plugin" width="350"/>
+    <img src="../assets/logo-color.png" alt="Auto Import a Roblox Plugin" width="350"/>
 </div>
 
 Roblox Auto Import is a powerful plugin designed to enhance your scripting experience in Roblox Studio. With automatic importing of **Services** & **Modules**, your development workflow becomes faster and smoother. Say goodbye to manual work and take advantage of the numerous features to make scripting a breeze!
 
 <div align="center">
-    <img src="assets/auto-import-usage.gif" alt="Auto Import a Roblox Plugin" width="1000"/>
+    <img src="../assets/auto-import-usage.gif" alt="Auto Import a Roblox Plugin" width="1000"/>
 </div>
 
 ## 🎉 Features
