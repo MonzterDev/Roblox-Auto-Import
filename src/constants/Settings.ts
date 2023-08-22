@@ -9,6 +9,10 @@ export type ImportLine = {
 }
 
 export interface SettingsState {
+    prefix: {
+        module: string;
+        service: string;
+    }
     toggle: {
         caseSensitive: boolean,
     },
@@ -32,6 +36,10 @@ export interface SettingsState {
 }
 
 export const DEFAULT_STATE: SettingsState = {
+    prefix: {
+        module: "",
+        service: "",
+    },
     toggle: {
         caseSensitive: false,
     },

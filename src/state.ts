@@ -5,55 +5,59 @@ import { globals } from "constants/global";
 
 // I got the idea from Roblox-LSP :P
 
-const ScriptEditorService = game.GetService("ScriptEditorService");
-const AnalyticsService = game.GetService("AnalyticsService");
+const ScriptEditorService = game.GetService( "ScriptEditorService" );
+const AnalyticsService = game.GetService( "AnalyticsService" );
 
-export let StateModule = new Instance("ModuleScript")
+export let StateModule = new Instance( "ModuleScript" )
 let State: SettingsState = DEFAULT_STATE
 
-export function GenerateStateModule() {
+export function GenerateStateModule () {
     StateModule.Name = `${EDITOR_NAME}-Settings`
     StateModule.Parent = AnalyticsService
     LoadData()
 }
 
-export function DisplayStateModule() {
-    ScriptEditorService.OpenScriptDocumentAsync(StateModule)
+export function DisplayStateModule () {
+    ScriptEditorService.OpenScriptDocumentAsync( StateModule )
 }
 
 // Fix empty save data strings
-function SetStateModuleSource() {
+function SetStateModuleSource () {
     StateModule.Source = `return {
+    prefix = { -- Imports will only be suggested when typing after these prefixes
+        module = "${State.prefix.module}",
+        service = "${State.prefix.service}",
+    },
     toggle = {
         caseSensitive = ${State.toggle.caseSensitive},
     },
     exclude = {
         ancestors = { -- This will exclude modules which are a descendant of the ancestors
-            ${State.exclude.ancestors.map(ancestors => `"${ancestors}"`).join(",\n\t\t\t")},
+            ${State.exclude.ancestors.map( ancestors => `"${ancestors}"` ).join( ",\n\t\t\t" )},
         },
         ancestorsTypes = { -- This will exclude modules which are a descendant of an ancestor with this type
-            ${State.exclude.ancestorsTypes.map(types => `"${types}"`).join(",\n\t\t\t")},
+            ${State.exclude.ancestorsTypes.map( types => `"${types}"` ).join( ",\n\t\t\t" )},
         },
         modules = { -- This will exclude modules matching this name
-            ${State.exclude.modules.map(modules => `"${modules}"`).join(",\n\t\t\t")},
+            ${State.exclude.modules.map( modules => `"${modules}"` ).join( ",\n\t\t\t" )},
         },
     },
 
     include = {
         services = { -- This will include services matching these names
-            ${State.include.services.map(services => `"${services}"`).join(",\n\t\t\t")},
+            ${State.include.services.map( services => `"${services}"` ).join( ",\n\t\t\t" )},
         },
     },
 
     context = { -- Configure which services are included in each context. Services should not be in multiple contexts (use shared).
         server = {
-            ${State.context.server.map(services => `"${services}"`).join(",\n\t\t\t")},
+            ${State.context.server.map( services => `"${services}"` ).join( ",\n\t\t\t" )},
         },
         shared = {
-            ${State.context.shared.map(services => `"${services}"`).join(",\n\t\t\t")},
+            ${State.context.shared.map( services => `"${services}"` ).join( ",\n\t\t\t" )},
         },
         client = {
-            ${State.context.client.map(services => `"${services}"`).join(",\n\t\t\t")},
+            ${State.context.client.map( services => `"${services}"` ).join( ",\n\t\t\t" )},
         },
     },
 
@@ -86,83 +90,94 @@ function SetStateModuleSource() {
 -- Data will be saved upon closing this Module.`
 }
 
-function LoadData() {
+function LoadData () {
     State = {
+        prefix: {
+            module: globals.plugin.GetSetting( "prefix_module" ) as string ?? DEFAULT_STATE.prefix.module,
+            service: globals.plugin.GetSetting( "prefix_service" ) as string ?? DEFAULT_STATE.prefix.service,
+        },
         toggle: {
-            caseSensitive: globals.plugin.GetSetting("toggle_caseSensitive") as boolean ?? DEFAULT_STATE.toggle.caseSensitive,
+            caseSensitive: globals.plugin.GetSetting( "toggle_caseSensitive" ) as boolean ?? DEFAULT_STATE.toggle.caseSensitive,
         },
         exclude: {
-            ancestors: globals.plugin.GetSetting("exclude_ancestors") as Array<string> ?? DEFAULT_STATE.exclude.ancestors,
-            modules: globals.plugin.GetSetting("exclude_modules") as Array<string> ?? DEFAULT_STATE.exclude.modules,
-            ancestorsTypes: globals.plugin.GetSetting("exclude_ancestorsTypes") as Array<string> ?? DEFAULT_STATE.exclude.ancestorsTypes,
+            ancestors: globals.plugin.GetSetting( "exclude_ancestors" ) as Array<string> ?? DEFAULT_STATE.exclude.ancestors,
+            modules: globals.plugin.GetSetting( "exclude_modules" ) as Array<string> ?? DEFAULT_STATE.exclude.modules,
+            ancestorsTypes: globals.plugin.GetSetting( "exclude_ancestorsTypes" ) as Array<string> ?? DEFAULT_STATE.exclude.ancestorsTypes,
         },
         include: {
-            services: globals.plugin.GetSetting("include_services") as Array<string> ?? DEFAULT_STATE.include.services,
+            services: globals.plugin.GetSetting( "include_services" ) as Array<string> ?? DEFAULT_STATE.include.services,
         },
         importLines: {
-            services: globals.plugin.GetSetting("importLines_services") as ImportLine ?? DEFAULT_STATE.importLines.services,
-            modules: globals.plugin.GetSetting("importLines_modules") as ImportLine ?? DEFAULT_STATE.importLines.modules,
+            services: globals.plugin.GetSetting( "importLines_services" ) as ImportLine ?? DEFAULT_STATE.importLines.services,
+            modules: globals.plugin.GetSetting( "importLines_modules" ) as ImportLine ?? DEFAULT_STATE.importLines.modules,
         },
         context: {
-            server: globals.plugin.GetSetting("context_server") as Array<string> ?? DEFAULT_STATE.context.server,
-            shared: globals.plugin.GetSetting("context_shared") as Array<string> ?? DEFAULT_STATE.context.shared,
-            client: globals.plugin.GetSetting("context_client") as Array<string> ?? DEFAULT_STATE.context.client,
+            server: globals.plugin.GetSetting( "context_server" ) as Array<string> ?? DEFAULT_STATE.context.server,
+            shared: globals.plugin.GetSetting( "context_shared" ) as Array<string> ?? DEFAULT_STATE.context.shared,
+            client: globals.plugin.GetSetting( "context_client" ) as Array<string> ?? DEFAULT_STATE.context.client,
         },
     }
 
     SetStateModuleSource()
 }
 
-export function SaveData() {
+export function SaveData () {
     const newModule = StateModule.Clone()
     newModule.Parent = AnalyticsService
     StateModule.Destroy()
 
     StateModule = newModule
     let stateModule: SettingsModule
-    const [success, response] = pcall(() => stateModule = require(StateModule) as SettingsModule) // Must create another Module because old one doesn't update when required a second time.
-    if (!success || !stateModule!) {
-        warn(`${EDITOR_NAME}: ${response}`)
-        print(`${EDITOR_NAME}: Did you mess up the settings table?`)
-        print(`${EDITOR_NAME}: Your setting changes have been reverted.`)
+    const [success, response] = pcall( () => stateModule = require( StateModule ) as SettingsModule ) // Must create another Module because old one doesn't update when required a second time.
+    if ( !success || !stateModule! ) {
+        warn( `${EDITOR_NAME}: ${response}` )
+        print( `${EDITOR_NAME}: Did you mess up the settings table?` )
+        print( `${EDITOR_NAME}: Your setting changes have been reverted.` )
         LoadData()
         return
     }
 
-    for (const [key, value] of pairs(stateModule.toggle)) {
-        if (t.boolean(value)) {
-            globals.plugin.SetSetting(`toggle_${key}`, value)
+    for ( const [key, value] of pairs( stateModule.prefix ) ) {
+        if ( t.string( value ) ) {
+            globals.plugin.SetSetting( `prefix_${key}`, value )
+            State.prefix[key] = value
+        }
+    }
+
+    for ( const [key, value] of pairs( stateModule.toggle ) ) {
+        if ( t.boolean( value ) ) {
+            globals.plugin.SetSetting( `toggle_${key}`, value )
             State.toggle[key] = value
         }
     }
 
-    for (const [key, value] of pairs(stateModule.exclude)) {
-        if (t.array(t.string)(value)) {
-            globals.plugin.SetSetting(`exclude_${key}`, value)
+    for ( const [key, value] of pairs( stateModule.exclude ) ) {
+        if ( t.array( t.string )( value ) ) {
+            globals.plugin.SetSetting( `exclude_${key}`, value )
             State.exclude[key] = value
         }
     }
 
-    for (const [key, value] of pairs(stateModule.include)) {
-        if (t.array(t.string)(value)) {
-            globals.plugin.SetSetting(`include_${key}`, value)
+    for ( const [key, value] of pairs( stateModule.include ) ) {
+        if ( t.array( t.string )( value ) ) {
+            globals.plugin.SetSetting( `include_${key}`, value )
             State.include[key] = value
         }
     }
 
-    for (const [key, value] of pairs(stateModule.importLines)) {
-        globals.plugin.SetSetting(`importLines_${key}`, value)
+    for ( const [key, value] of pairs( stateModule.importLines ) ) {
+        globals.plugin.SetSetting( `importLines_${key}`, value )
         State.importLines[key] = value
     }
 
-    for (const [key, value] of pairs(stateModule.context)) {
-        globals.plugin.SetSetting(`context_${key}`, value)
+    for ( const [key, value] of pairs( stateModule.context ) ) {
+        globals.plugin.SetSetting( `context_${key}`, value )
         State.context[key] = value
     }
 
-    print(`${EDITOR_NAME}: Settings have been saved`)
+    print( `${EDITOR_NAME}: Settings have been saved` )
 }
 
-export function GetState() {
+export function GetState () {
     return State
 }

@@ -156,6 +156,12 @@ export function AutocompleteCallback ( request: Request, response: Response ) {
 	const currentWord = GetWordFromTypedText( currentLineText, request.position.character );
 	if ( currentWord.size() === 0 ) return response
 
+	const modulePrefix = GetState().prefix.module;
+	const servicePrefix = GetState().prefix.service;
+	const includesModulePrefix = currentLineText.find( `${modulePrefix}${currentWord}` )[0] !== undefined;
+	const includesServicePrefix = currentLineText.find( `${servicePrefix}${currentWord}` )[0] !== undefined;
+	if ( !includesModulePrefix && !includesServicePrefix ) return response
+
 	SetEditorContext()
 
 	const replace = {
@@ -172,6 +178,9 @@ export function AutocompleteCallback ( request: Request, response: Response ) {
 	const currentScriptContents = document.GetText();
 	const imports = GetResponseItemsFromTypedText( currentWord, currentScriptContents );
 	for ( const [path, responseItem] of pairs( imports ) ) {
+		if ( responseItem.type === "Module" && !includesModulePrefix ) continue;
+		if ( responseItem.type === "Service" && !includesServicePrefix ) continue;
+
 		responseItem.textEdit.replace = replace
 		response.items.push( responseItem.GetResponseItem() );
 	}
